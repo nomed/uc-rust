@@ -26,6 +26,9 @@ ALLOWED_TRANSITIONS = {
     "Withdrawn": set(),
 }
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+LIFECYCLE_ONLY_FIELDS = {
+    "status", "updated_at", "review", "deprecation", "superseded_by", "waivers"
+}
 
 
 @dataclass(frozen=True)
@@ -113,8 +116,8 @@ def validate_change(path: str, before_text: str | None, after_text: str) -> list
     if old_version and new_version and new_version < old_version:
         findings.append(Finding(path, "content_version", "version-regression", "content_version cannot decrease"))
 
-    semantic_before = {k: v for k, v in before.items() if k not in {"updated_at", "review"}}
-    semantic_after = {k: v for k, v in after.items() if k not in {"updated_at", "review"}}
+    semantic_before = {k: v for k, v in before.items() if k not in LIFECYCLE_ONLY_FIELDS}
+    semantic_after = {k: v for k, v in after.items() if k not in LIFECYCLE_ONLY_FIELDS}
     if semantic_before != semantic_after and old_version == new_version:
         findings.append(Finding(path, "content_version", "semantic-version", "semantic envelope change requires a content_version increment"))
 

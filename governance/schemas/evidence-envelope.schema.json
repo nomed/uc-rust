@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uc-rust.dev/schemas/evidence-envelope.schema.json",
+  "title": "UC Rust Evidence Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evidence_id", "evidence_type", "schema_version", "observed_at", "correlation", "operation", "runtime", "classification"],
+  "properties": {
+    "evidence_id": {"type": "string", "minLength": 1},
+    "evidence_type": {"type": "string", "enum": ["structured_event", "trace_observation", "metric_observation", "health_observation", "failure_bundle", "economic_observation"]},
+    "schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invocation_id", "correlation_id"],
+      "properties": {
+        "invocation_id": {"type": "string", "minLength": 1},
+        "correlation_id": {"type": "string", "minLength": 1},
+        "causation_id": {"type": "string"},
+        "effect_id": {"type": "string"},
+        "job_id": {"type": "string"}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "semantic_version", "disposition"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "semantic_version": {"type": "string", "minLength": 1},
+        "disposition": {"type": "string", "enum": ["succeeded", "rejected", "failed", "accepted", "indeterminate", "cancelled", "timed_out"]},
+        "error_class": {"type": "string"}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instance_id", "profile", "configuration_revision"],
+      "properties": {
+        "instance_id": {"type": "string", "minLength": 1},
+        "profile": {"type": "string", "enum": ["central", "store-edge", "warehouse-edge", "test"]},
+        "location_scope": {"type": "string"},
+        "configuration_revision": {"type": "string", "minLength": 1}
+      }
+    },
+    "realization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "realization_id": {"type": "string"},
+        "provider_id": {"type": "string"},
+        "binding_revision": {"type": "string"},
+        "stage_id": {"type": "string"},
+        "kind": {"type": "string", "enum": ["native", "delegated", "composed", "pipeline", "hybrid"]}
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "technical_state": {"type": "string", "enum": ["healthy", "degraded", "unavailable", "unknown"]},
+        "retail_operational_state": {"type": "string", "enum": ["healthy", "degraded", "unavailable", "unknown"]},
+        "reason_code": {"type": "string"},
+        "affected_operations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "economic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "economic_unit_id": {"type": "string"},
+        "allocation_rule_revision": {"type": "string"},
+        "model_revision": {"type": "string"},
+        "duration_ms": {"type": "number", "minimum": 0},
+        "cpu_ms": {"type": "number", "minimum": 0},
+        "allocated_bytes": {"type": "integer", "minimum": 0},
+        "network_bytes": {"type": "integer", "minimum": 0},
+        "storage_bytes": {"type": "integer", "minimum": 0},
+        "provider_units": {"type": "number", "minimum": 0},
+        "completeness": {"type": "string", "enum": ["complete", "partial", "unavailable"]}
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacy", "retention", "redacted"],
+      "properties": {
+        "privacy": {"type": "string", "enum": ["public_operational", "internal_operational", "confidential", "restricted"]},
+        "retention": {"type": "string", "minLength": 1},
+        "redacted": {"type": "boolean"}
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "failure_code": {"type": "string"},
+        "component_id": {"type": "string"},
+        "retry_disposition": {"type": "string"},
+        "reconciliation_required": {"type": "boolean"},
+        "runbook_id": {"type": "string"},
+        "owner": {"type": "string"}
+      }
+    }
+  }
+}

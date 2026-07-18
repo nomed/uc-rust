@@ -1,8 +1,11 @@
 # Controlled Architecture Record Taxonomy
 
-- Status: Draft
+- Status: Complete
 - Governing issue: #56
 - Governing decision: ADR-0022
+- Lifecycle model: `docs/architecture/record-lifecycle.md`
+- Relationship model: `docs/architecture/relationship-model.md`
+- Validation contract: `docs/architecture/record-validation.md`
 
 ## Taxonomy principles
 
@@ -10,7 +13,7 @@ A record family exists only when it has a distinct semantic responsibility. Diff
 
 Records are normative. Sessions, handoffs, notes, diagrams, code, test reports and generated projections may support records but are not record families.
 
-## Accepted 1.0 baseline candidates
+## Accepted 1.0 baseline
 
 ### ADR — Architecture Decision Record
 
@@ -101,14 +104,14 @@ The following remain supporting artifacts unless a future ADR decides otherwise:
 
 They are referenced through provenance or evidence and may have their own operational templates.
 
-## Potential consolidation decisions
+## Consolidation decisions
 
 The baseline intentionally avoids additional families for:
 
 - `Operation Record`: operations belong to a CR and may be realized through an RRR invocation contract;
 - `Event Record`: event semantics belong to an IR, with ownership from a CR;
 - `Policy Record`: policy is represented by the owning CR, SR, DR, QAR or ADR;
-- `Deployment Record`: deployment evidence and runtime profiles belong to RRR/RR;
+- `Deployment Record`: deployment manifests and observations remain artifacts, runtime realizations and evidence;
 - `Agent Record`: agent responsibilities are modeled as capabilities/runtime responsibilities unless a distinct semantic need is demonstrated.
 
 ## Extension test
@@ -122,3 +125,7 @@ Before proposing a new family, answer:
 5. How will existing tools and schemas migrate?
 
 Failure to answer any item means the concern remains a subtype, section, relation or supporting artifact rather than a new record family.
+
+## Completion statement
+
+The 1.0 taxonomy is complete because every planned architecture concern has one owner, deferred and rejected families are explicit, extension rules prevent uncontrolled proliferation, and the common lifecycle, relationship, authority and validation models apply to every baseline family.

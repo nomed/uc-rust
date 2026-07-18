@@ -1,0 +1,13 @@
+[package]
+name = "uc-sync-sqlite"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }
+uc-sync = { path = "../uc-sync" }
+
+[lints]
+workspace = true

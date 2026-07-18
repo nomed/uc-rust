@@ -6,13 +6,33 @@ Evolve UC Rust as both a proprietary Unified Commerce platform and a high-qualit
 
 ## Required reading
 
-Before changing architecture or domain behaviour, read:
+Before any meaningful work, read in this order:
 
-1. `CONTEXT.md`
-2. relevant files under `docs/adr/`
-3. the affected crate public API and tests
-4. `governance/github-manifest.json` when changing issues, labels, milestones or Project metadata
-5. `docs/governance/release-packaging.md` when changing versions, packaging, publishing or deployment artifacts
+1. `.context/manifest.yaml`
+2. `.context/README.md`
+3. this `AGENTS.md` and any nearer nested `AGENTS.md`
+4. accepted records under `.context/decisions/`
+5. accepted records under `.context/rfcs/` relevant to the task
+6. the governing GitHub issue and latest applicable handoff
+7. `CONTEXT.md`, project charter and target architecture documents relevant to the task
+8. the affected crate public API and tests
+
+Also read:
+
+- `governance/github-manifest.json` when changing issues, labels, milestones or Project metadata;
+- `docs/governance/release-packaging.md` when changing versions, packaging, publishing or deployment artifacts.
+
+When sources conflict, follow the precedence declared in `.context/manifest.yaml`. Do not guess or silently reconcile material conflicts.
+
+## Context records
+
+- `.context/` is the durable operating memory for humans and agents.
+- Sessions and handoffs preserve continuity and evidence but are not architecture authority.
+- Material decisions must be recorded as numbered ADRs or RFCs.
+- Agents may draft ADRs and RFCs; human approval is required to mark material decisions accepted.
+- Accepted records are immutable. Replace them only through a new record that marks the old one superseded.
+- At the end of meaningful work, record a session and create a handoff when continuation is required.
+- Never store secrets, private chain-of-thought or unredacted sensitive data in context records.
 
 ## Engineering rules
 
@@ -47,7 +67,7 @@ Before changing architecture or domain behaviour, read:
 
 ## Validation
 
-Run before proposing changes:
+Run before proposing code changes:
 
 ```bash
 cargo fmt --all -- --check
@@ -55,6 +75,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
+Validate context and governance manifests when they are affected.
+
 ## Architecture changes
 
-Create or update an ADR when changing boundaries, persistence strategy, event delivery, public contracts, security model or deployment topology.
+Create or update a decision record when changing boundaries, persistence strategy, event delivery, public contracts, security model, deployment topology, release model or agentic operating model. Substantial or high-cost changes require an RFC before implementation.

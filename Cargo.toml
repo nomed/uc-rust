@@ -5,6 +5,7 @@ members = [
     "crates/uc-persistence-contract",
     "crates/uc-persistence-sqlite",
     "crates/uc-persistence-postgres",
+    "crates/uc-sync",
     "apps/uc-server",
 ]
 resolver = "2"

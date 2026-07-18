@@ -1,11 +1,12 @@
 # ADR-0022 — Architecture Knowledge Record Model
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-18
+- Accepted at: 2026-07-18
+- Accepted by: Daniele Favara, project owner
 - Governing issue: #56
 - Parent epic: #55
 - Related: #62, #63, #64, #65, #66, #67, ADR-0021, RFC-0001
-- Review readiness: Ready for accountable human acceptance
 
 ## Context
 
@@ -154,15 +155,8 @@ The meta-model imposes these additional invariants:
 
 The examples validate the distinction between capability semantics and reusable runtime invocation semantics. The linked work resolves lifecycle, relationship, schema, migration and authority boundaries without requiring Yukh or external infrastructure.
 
-## Acceptance readiness
+## Acceptance
 
-The technical prerequisites for acceptance are complete:
+The project owner explicitly accepted this ADR on 2026-07-18 after completion of the linked P0 work and review of the canonical CR-0001 and RRR-0001 examples.
 
-- [x] lifecycle model defined;
-- [x] relationship model defined;
-- [x] schemas and validator cover the common envelope and canonical CR/RRR records;
-- [x] migration path for existing ADRs and RFCs documented;
-- [x] UC-BoK, UC-Rust, Yukh and EbD responsibility/identifier boundaries defined;
-- [x] canonical CR-0001 and RRR-0001 available for accountable review.
-
-The only remaining action is an explicit attributable human acceptance decision. Human acceptance remains mandatory under `.context/manifest.yaml`; issue completion and passing validation do not change this ADR from `Proposed` to `Accepted`.
+Acceptance makes this model authoritative for UC Rust 1.0 architecture records. Subsequent normative changes require the lifecycle amendment or supersession rules defined in `docs/architecture/record-lifecycle.md`; implementation progress, passing CI or future projections cannot silently alter this decision.

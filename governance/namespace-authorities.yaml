@@ -1,0 +1,94 @@
+schema_version: 1
+updated_at: 2026-07-18
+
+namespaces:
+  uc-rust:
+    authority: UC Rust
+    kind: normative-record-registry
+    canonical_source: repository
+    repository: nomed/uc-rust
+    resolvable_offline: true
+    owns:
+      - ADR
+      - RFC
+      - CR
+      - RRR
+      - QAR
+      - ER
+      - SR
+      - IR
+      - DR
+      - RR
+    forbids:
+      - external-concept-ownership
+      - projection-as-authority
+
+  uc-bok:
+    authority: UC-BoK
+    kind: concept-registry
+    canonical_source: external
+    resolvable_offline: false
+    owns:
+      - business-concepts
+      - domain-concepts
+      - reference-capabilities
+      - reference-models
+    local_cache:
+      permitted: true
+      authoritative: false
+      requires: [canonical_id, observed_at]
+    forbids:
+      - uc-rust-lifecycle
+      - implementation-conformance
+      - release-state
+
+  ebd:
+    authority: Economics by Design
+    kind: economic-knowledge-registry
+    canonical_source: external
+    resolvable_offline: false
+    owns:
+      - economic-concepts
+      - economic-units
+      - reusable-cost-models
+      - measurement-models
+    local_cache:
+      permitted: true
+      authoritative: false
+      requires: [canonical_id, observed_at]
+    forbids:
+      - uc-rust-release-decisions
+      - uc-rust-lifecycle
+      - implementation-conformance
+
+  yukh:
+    authority: Yukh
+    kind: projection-registry
+    canonical_source: projection
+    resolvable_offline: false
+    owns:
+      - projection-definitions
+      - projection-local-identifiers
+      - inference-provenance
+      - reconciliation-findings
+    may_project: [uc-rust, uc-bok, ebd]
+    forbids:
+      - normative-record-ownership
+      - concept-ownership
+      - lifecycle-decisions
+      - normative-relation-acceptance
+
+resolution_outcomes:
+  - resolved
+  - unavailable
+  - not_found
+  - identity_mismatch
+  - unknown_authority
+  - stale_cache
+
+invariants:
+  - canonical_identifier_has_exactly_one_registered_namespace
+  - namespace_authority_owns_canonical_meaning
+  - aliases_and_locators_never_replace_canonical_identity
+  - unavailable_external_authority_never_causes_local_copy
+  - projection_rebuild_never_changes_normative_meaning

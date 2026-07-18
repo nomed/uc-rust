@@ -21,43 +21,58 @@ def read(path: str) -> str:
     return target.read_text(encoding="utf-8")
 
 
-def dependency_section(manifest: str) -> str:
+def dependency_names(path: str) -> set[str]:
+    manifest = read(path)
     marker = "[dependencies]"
     if marker not in manifest:
-        return ""
+        return set()
     remainder = manifest.split(marker, 1)[1]
     next_section = remainder.find("\n[")
-    return remainder if next_section < 0 else remainder[:next_section]
+    section = remainder if next_section < 0 else remainder[:next_section]
+    return {
+        line.split("=", 1)[0].strip()
+        for line in section.splitlines()
+        if "=" in line and not line.lstrip().startswith("#")
+    }
+
+
+def require_exact(path: str, expected: set[str]) -> None:
+    declared = dependency_names(path)
+    if declared != expected:
+        fail(
+            f"{path} dependencies differ: expected {sorted(expected)}, "
+            f"found {sorted(declared)}"
+        )
 
 
 def main() -> None:
-    domain = dependency_section(read("crates/uc-domain/Cargo.toml"))
-    if domain.strip():
-        fail("uc-domain must not declare runtime dependencies")
+    require_exact("crates/uc-domain/Cargo.toml", set())
+    require_exact("crates/uc-application/Cargo.toml", {"serde", "uc-domain"})
+    require_exact(
+        "crates/uc-persistence-contract/Cargo.toml",
+        {"uc-application", "uc-domain"},
+    )
+    require_exact(
+        "crates/uc-persistence-sqlite/Cargo.toml",
+        {"rusqlite", "uc-application", "uc-domain"},
+    )
+    require_exact(
+        "crates/uc-persistence-postgres/Cargo.toml",
+        {"postgres", "uc-application", "uc-domain"},
+    )
 
-    application = dependency_section(read("crates/uc-application/Cargo.toml"))
-    allowed_application = {"uc-domain"}
-    declared_application = {
-        line.split("=", 1)[0].strip()
-        for line in application.splitlines()
-        if "=" in line and not line.lstrip().startswith("#")
-    }
-    prohibited = declared_application - allowed_application
-    if prohibited:
-        fail(
-            "uc-application contains prohibited dependencies: "
-            + ", ".join(sorted(prohibited))
-        )
-    if "uc-domain" not in declared_application:
-        fail("uc-application must depend on uc-domain")
-
-    server = dependency_section(read("apps/uc-server/Cargo.toml"))
+    server = dependency_names("apps/uc-server/Cargo.toml")
     if "uc-application" not in server:
         fail("uc-server must compose the application crate")
 
+    core_text = read("crates/uc-domain/Cargo.toml") + read(
+        "crates/uc-application/Cargo.toml"
+    )
     for provider_token in (
         "sqlx",
         "diesel",
+        "rusqlite",
+        "postgres",
         "redis",
         "aws-sdk",
         "spicedb",
@@ -66,10 +81,8 @@ def main() -> None:
         "tonic",
         "reqwest",
     ):
-        if provider_token in domain or provider_token in application:
-            fail(
-                f"provider/framework dependency {provider_token!r} leaked into the core"
-            )
+        if provider_token in core_text:
+            fail(f"provider/framework dependency {provider_token!r} leaked into the core")
 
     print("architecture dependency boundaries are valid")
 

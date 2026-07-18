@@ -8,6 +8,17 @@
 
 The common envelope defines metadata shared by every normative architecture record. It provides stable identity, ownership, lifecycle, provenance, traceability, freshness and evidence semantics while allowing each record family to own a specialized body.
 
+## Canonical source representation
+
+The authoritative source representation is Markdown with machine-validatable YAML front matter:
+
+- YAML front matter contains the common envelope and typed relations;
+- the Markdown body contains type-specific normative content;
+- the body must not redefine envelope semantics;
+- generated JSON, indexes and graph projections are derived artifacts;
+- formatting normalization does not require a `content_version` change;
+- schema validation rejects unknown lifecycle states and uncontrolled relation types.
+
 ## Required fields
 
 | Field | Meaning |
@@ -19,7 +30,7 @@ The common envelope defines metadata shared by every normative architecture reco
 | `title` | Concise human-readable name. |
 | `summary` | Normative intent in a few sentences. |
 | `status` | Record lifecycle state. |
-| `owners` | Accountable maintainers, not merely contributors. |
+| `owners` | Accountable people or roles, not merely contributors. |
 | `created_at` | Original creation date. |
 | `updated_at` | Date of the latest semantic update. |
 | `scope` | Concern for which this record is authoritative. |
@@ -45,7 +56,7 @@ The common envelope defines metadata shared by every normative architecture reco
 Canonical identity format:
 
 ```text
-uc-rust:<TYPE>-<NNNN>
+<namespace>:<local-id>
 ```
 
 Examples:
@@ -54,17 +65,12 @@ Examples:
 uc-rust:ADR-0022
 uc-rust:CR-0001
 uc-rust:RRR-0001
-```
-
-Cross-repository references use the owning namespace:
-
-```text
 uc-bok:CAP-COMMERCE-BASKET
 yukh:META-RELATION-0001
 ebd:ER-0007
 ```
 
-The numeric suffix is immutable and never reused. Renaming a title does not change identity.
+The namespace identifies the authoritative repository or registry. Local identifiers are immutable and never reused. Titles, aliases and paths aid discovery but are not identity. Yukh may index and reconcile identifiers without becoming their authority.
 
 ## Version dimensions
 
@@ -73,74 +79,35 @@ The numeric suffix is immutable and never reused. Renaming a title does not chan
 - `schema_version` changes when representation or validation rules change;
 - `content_version` changes when governed meaning changes.
 
-Editorial fixes that do not alter meaning update `updated_at` but need not increment `content_version`.
+Editorial fixes update `updated_at` but need not increment `content_version`.
 
 ## Owners and reviewers
 
-Owners are accountable for correctness and freshness. Reviewers provide required independent disposition. One person may contribute to both roles, but acceptance must record who made the disposition and under which governance rule.
+Owners are accountable for correctness and freshness. Accountable roles may be used before named people are assigned. Reviewers provide independent disposition. Acceptance records who made the disposition and under which governance rule.
 
 ## Scope and non-goals
 
-`scope` states what the record owns. `non_goals` protects adjacent concerns from accidental capture. A record must not become authoritative merely because it contains a link or explanatory paragraph about another concern.
+`scope` states what the record owns. `non_goals` protects adjacent concerns from accidental capture. A record does not become authoritative merely because it links to or explains another concern.
 
 ## Provenance
 
-Provenance is typed. Initial source kinds are:
-
-- `issue`;
-- `session`;
-- `uc-bok`;
-- `external-standard`;
-- `incident`;
-- `experiment`;
-- `migration`.
-
-A provenance item identifies origin, not correctness.
+Initial source kinds are `issue`, `session`, `uc-bok`, `external-standard`, `incident`, `experiment` and `migration`. Provenance identifies origin, not correctness.
 
 ## Relations
 
-Each relation contains:
-
-- `type`;
-- `target`;
-- optional `scope`;
-- optional `valid_from` and `valid_until`;
-- optional provenance;
-- optional confidence for inferred, non-normative edges.
-
-Normative edges may not depend solely on inferred confidence.
+Each relation contains `type`, `target`, optional `scope`, temporal validity, provenance and confidence for inferred non-normative edges. Normative edges may not depend solely on inferred confidence. Final relation types are governed by the relationship-model work item.
 
 ## Evidence
 
-Evidence references do not live as anonymous URLs. Each evidence item declares:
+Evidence references are not anonymous URLs. Each item declares kind, locator, supported claim, produced date, relevant environment/fingerprint, freshness/expiry and result/disposition.
 
-- evidence kind;
-- locator;
-- what claim it supports;
-- produced date;
-- environment/fingerprint where relevant;
-- freshness or expiry rule;
-- result/disposition.
-
-Initial evidence kinds include code, test, benchmark, trace, report, deployment, operational observation, audit and review.
+Initial evidence kinds include code, test, benchmark, trace, report, deployment, operational observation, audit and review. Evidence does not become normative merely by being referenced or bundled by a release.
 
 ## Review metadata
 
-A review block declares:
-
-- required reviewer roles;
-- current reviewers;
-- disposition;
-- review date;
-- next review date or trigger;
-- unresolved objections;
-- bounded exceptions.
-
-Absence of objection is not acceptance.
+A review block declares required reviewer roles, current reviewers, disposition, review date, next review date/trigger, unresolved objections and bounded exceptions. Absence of objection is not acceptance.
 
 ## Forbidden ambiguities
-
-The envelope must not use one field to represent multiple dimensions. In particular:
 
 - `status` does not mean implementation progress;
 - `version` does not combine schema and content versions;

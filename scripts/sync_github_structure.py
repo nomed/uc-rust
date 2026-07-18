@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Synchronize native GitHub issue relationships and Project roadmap dates."""
+from __future__ import annotations
+import json, os, subprocess, urllib.error, urllib.request
+from pathlib import Path
+
+API="https://api.github.com"
+STRUCTURE=Path("governance/github-structure.json")
+MANIFEST=Path("governance/github-manifest.json")
+
+class SyncError(RuntimeError): pass
+
+def request(token: str, method: str, path: str, payload=None, tolerate=()):
+    body=None if payload is None else json.dumps(payload).encode()
+    req=urllib.request.Request(API+path,data=body,method=method,headers={
+        "Accept":"application/vnd.github+json","Authorization":f"Bearer {token}",
+        "X-GitHub-Api-Version":"2026-03-10","Content-Type":"application/json",
+        "User-Agent":"uc-rust-structure-sync"})
+    try:
+        with urllib.request.urlopen(req) as response:
+            raw=response.read(); return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as exc:
+        if exc.code in tolerate: return None
+        raise SyncError(f"{method} {path}: {exc.code} {exc.read().decode(errors='replace')}") from exc
+
+def gh(token: str, *args: str):
+    env=os.environ.copy(); env["GH_TOKEN"]=token
+    result=subprocess.run(["gh",*args,"--format","json"],env=env,text=True,capture_output=True)
+    if result.returncode: raise SyncError(result.stderr)
+    return json.loads(result.stdout)
+
+def values(payload, key):
+    return payload if isinstance(payload,list) else payload.get(key,[])
+
+def sync_relations(repo_token: str, structure: dict):
+    repo=structure["repository"]
+    numbers={int(n) for n in structure["parents"]}|{int(n) for n in structure["blocked_by"]}
+    numbers|={int(v) for v in structure["parents"].values()}
+    numbers|={int(v) for xs in structure["blocked_by"].values() for v in xs}
+    issues={n:request(repo_token,"GET",f"/repos/{repo}/issues/{n}") for n in sorted(numbers)}
+    for child_text,parent in structure["parents"].items():
+        child=int(child_text)
+        current=request(repo_token,"GET",f"/repos/{repo}/issues/{parent}/sub_issues?per_page=100") or []
+        if child not in {item["number"] for item in current}:
+            print(f"add #{child} as sub-issue of #{parent}")
+            request(repo_token,"POST",f"/repos/{repo}/issues/{parent}/sub_issues",{"sub_issue_id":issues[child]["id"],"replace_parent":True})
+    for issue_text, blockers in structure["blocked_by"].items():
+        issue=int(issue_text)
+        current=request(repo_token,"GET",f"/repos/{repo}/issues/{issue}/dependencies/blocked_by?per_page=100") or []
+        current_numbers={item["number"] for item in current}
+        for blocker in blockers:
+            if blocker not in current_numbers:
+                print(f"add blocked-by #{blocker} to #{issue}")
+                request(repo_token,"POST",f"/repos/{repo}/issues/{issue}/dependencies/blocked_by",{"issue_id":issues[blocker]["id"]},tolerate=(422,))
+
+def ensure_date_field(project_token, project, name):
+    fields=values(gh(project_token,"project","field-list",str(project["number"]),"--owner",project["owner"],"--limit","100"),"fields")
+    found=next((f for f in fields if f["name"]==name),None)
+    if found: return found
+    return gh(project_token,"project","field-create",str(project["number"]),"--owner",project["owner"],"--name",name,"--data-type","DATE")
+
+def sync_project(project_token: str, structure: dict, manifest: dict):
+    project=structure["project"]
+    view=gh(project_token,"project","view",str(project["number"]),"--owner",project["owner"])
+    start=ensure_date_field(project_token,project,"Start date")
+    target=ensure_date_field(project_token,project,"Target date")
+    items=values(gh(project_token,"project","item-list",str(project["number"]),"--owner",project["owner"],"--limit","500"),"items")
+    by_number={int(i["content"]["number"]):i for i in items if (i.get("content") or {}).get("type")=="Issue"}
+    releases=structure["roadmap"]["releases"]
+    for number_text,definition in manifest["issues"].items():
+        number=int(number_text); item=by_number.get(number)
+        if not item: continue
+        release=definition["project"]["Release"]
+        dates=releases[release]
+        for field,value in ((start,dates["start"]),(target,dates["target"])):
+            gh(project_token,"project","item-edit","--id",item["id"],"--project-id",view["id"],"--field-id",field["id"],"--date",value)
+    # The user-owned Project Views API currently requires a classic user token.
+    request(project_token,"POST",f"/users/{project['owner_id']}/projectsV2/{project['number']}/views",{
+        "name":structure["roadmap"]["view_name"],"layout":"roadmap","filter":"is:issue"},tolerate=(304,422))
+
+def main():
+    structure=json.loads(STRUCTURE.read_text())
+    manifest=json.loads(MANIFEST.read_text())
+    repo_token=os.environ.get("REPO_TOKEN","")
+    project_token=os.environ.get("PROJECT_TOKEN","")
+    if not repo_token: raise SyncError("REPO_TOKEN is required")
+    sync_relations(repo_token,structure)
+    if project_token: sync_project(project_token,structure,manifest)
+    else: print("PROJECT_TOKEN missing: relationships applied, roadmap fields skipped")
+
+if __name__=="__main__":
+    try: main()
+    except (SyncError,subprocess.CalledProcessError) as exc:
+        print(f"ERROR: {exc}"); raise SystemExit(1)

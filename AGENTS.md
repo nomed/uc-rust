@@ -93,6 +93,21 @@ When sources conflict, follow the precedence declared in `.context/manifest.yaml
 - Tests and fixtures must be deterministic, isolated and free from timing, ordering or external-environment assumptions.
 - A change is not complete if it adds production behavior without corresponding tests.
 
+## Self-provisioned test environments
+
+- CI must provision every database, cache, object store, broker or other external dependency required by tests.
+- Tests must not rely on manually created or shared long-lived test infrastructure.
+- Prefer Rust Testcontainers for test-owned adapter and contract-test dependencies.
+- Prefer Docker Compose for multi-service system and end-to-end environments that developers must also run locally.
+- Use GitHub Actions service containers only for simple job-wide dependencies when they reduce complexity.
+- Pin container image versions and upgrade them deliberately.
+- Use explicit health checks or protocol readiness probes; fixed sleeps are forbidden.
+- Isolate schemas, databases, buckets, namespaces, queues and credentials per job or test scope.
+- Apply real migrations before persistence integration suites.
+- Collect service logs and useful diagnostics automatically on failure.
+- Ensure local and GitHub Actions execution use the same versioned environment definitions.
+- Tear down all external resources automatically after the suite.
+
 ## Documentation and executable examples
 
 - Production modules, traits, structs, enums, functions, methods and non-obvious fields require clear and current rustdoc.
@@ -149,8 +164,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-When applicable, also run rustdoc linting, 100% line/branch coverage, context validation, architecture tests, adapter contract suites, fixture round-trip tests, migration clean-install tests and supported upgrade-path tests.
+When applicable, also run rustdoc linting, 100% line/branch coverage, context validation, architecture tests, adapter contract suites, fixture round-trip tests, self-provisioned integration environments, migration clean-install tests and supported upgrade-path tests.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, testing policy, documentation policy, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, testing policy, test-environment orchestration, documentation policy, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.

@@ -1,6 +1,6 @@
 # ADR-0024 — Governed Capability Realization
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-18
 - Governing issue: #68
 - Parent epic: #46
@@ -159,4 +159,4 @@ These are proving cases, not an exhaustive list of delegable capabilities.
 - operation-level trace, provider attribution and economic evidence;
 - architecture tests preventing provider leakage and adapter bypass.
 
-This ADR can be accepted as an architectural decision before executable M1/M3 evidence exists; the implementation gate must not claim those proofs until they are produced.
+This ADR is accepted as an architectural decision before executable M1/M3 evidence exists; the implementation gate must not claim those proofs until they are produced.

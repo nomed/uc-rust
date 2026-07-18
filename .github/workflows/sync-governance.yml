@@ -1,0 +1,75 @@
+name: Sync GitHub governance
+
+on:
+  pull_request:
+    paths:
+      - governance/github-manifest.json
+      - scripts/sync_github_governance.py
+      - .github/workflows/sync-governance.yml
+  push:
+    branches: [main]
+    paths:
+      - governance/github-manifest.json
+      - scripts/sync_github_governance.py
+      - .github/workflows/sync-governance.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Reconciliation mode
+        required: true
+        type: choice
+        default: dry-run
+        options:
+          - dry-run
+          - apply
+      confirmation:
+        description: Type DELETE_UNMANAGED_GITHUB_METADATA to allow apply mode
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: github-governance
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate governance manifest
+        run: python3 scripts/sync_github_governance.py --mode validate
+
+  dry-run:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report governance drift
+        env:
+          REPO_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: python3 scripts/sync_github_governance.py --mode dry-run
+
+  apply:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'apply'
+    needs: validate
+    environment: github-governance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconcile and remove unmanaged metadata
+        env:
+          REPO_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: >-
+          python3 scripts/sync_github_governance.py
+          --mode apply
+          --confirm "${{ inputs.confirmation }}"

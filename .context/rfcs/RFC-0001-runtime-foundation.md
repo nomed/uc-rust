@@ -1,9 +1,49 @@
-# RFC-0001 — UC Runtime Foundation
+---
+id: uc-rust:RFC-0002
+type: RFC
+schema_version: 1
+content_version: 0.1.0
+title: UC Runtime Foundation
+summary: Define the smallest shared runtime required to execute canonical UC Rust Operations consistently across central, store-edge and future runtime profiles.
+status: Draft
+owners:
+  - role: runtime-architecture
+authors:
+  - role: architecture
+created_at: 2026-07-18
+updated_at: 2026-07-18
+scope: Shared runtime invocation, lifecycle, configuration, observability, work scheduling and extension responsibilities.
+non_goals:
+  - General-purpose dependency injection container
+  - Custom async executor
+  - Internal distributed consensus implementation
+  - Arbitrary dynamic code loading
+  - Mandatory message broker
+  - Business workflow logic
+  - Transport-specific business services
+provenance:
+  - kind: migration
+    locator: governance/record-migration-registry.yaml
+relations:
+  - type: depends_on
+    target: uc-rust:ADR-0021
+review:
+  required_roles: [runtime-architecture, reliability, security]
+  reviewers: []
+  disposition: pending
+aliases:
+  - RFC-0001-runtime-foundation.md
+  - RFC-0001 — UC Runtime Foundation
+lifecycle_events:
+  - from: null
+    to: Draft
+    at: 2026-07-18
+    actor: architecture
+    rationale: Initial draft; canonical identifier remapped during 1.0 migration to resolve duplicate RFC-0001 reservation.
+    content_version: 0.1.0
+---
 
-- Status: Draft
-- Date: 2026-07-18
-- Governing epic: to be assigned
-- Decision dependency: ADR-0021
+# RFC-0002 — UC Runtime Foundation
 
 ## Objective
 

@@ -14,8 +14,9 @@ Before meaningful work, read in this order:
 4. accepted records under `.context/decisions/`
 5. accepted records under `.context/rfcs/` relevant to the task
 6. `.context/quality-attributes/system-quality-model.md`
-7. the governing GitHub issue and latest applicable handoff
-8. project charter, target architecture, affected public APIs and tests
+7. `governance/uc-bok-traceability.yaml`
+8. the governing GitHub issue and latest applicable handoff
+9. project charter, target architecture, affected public APIs and tests
 
 Also read `governance/github-manifest.json` for GitHub metadata and `docs/governance/release-packaging.md` for release work. Follow `.context/manifest.yaml` precedence and never silently reconcile material conflicts.
 
@@ -37,6 +38,16 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Exceptions require reason, compensating control, owner and expiry.
 - Expired or undocumented exceptions fail the Project Ready gate.
 
+## UC-BoK reference implementation
+
+- `nomed/uc-bok` is normative for Unified Commerce concepts, principles, capabilities, business objects, relationships, constraints and schemas.
+- UC Rust is the reference implementation and executable validation environment.
+- Every implemented capability, domain type, application operation, public contract and critical test maps to stable UC-BoK identifiers where such identifiers exist.
+- Every meaningful change declares UC-BoK impact: none, implements-existing, clarification-required, specification-defect, extension-proposed, adoption-required or intentional-divergence.
+- Update `governance/uc-bok-traceability.yaml` when implementation status or mapping changes.
+- New UC-BoK normative material requires explicit UC Rust impact assessment; implementation findings that challenge the model require a reciprocal UC-BoK issue.
+- Silent divergence is forbidden. Intentional divergence requires accepted records in both repositories and explicit compatibility consequences.
+
 ## Single application core
 
 - Use hexagonal / ports-and-adapters architecture with use-case-oriented application operations.
@@ -47,6 +58,23 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Inbound adapters may authenticate, validate transport syntax, map DTOs, establish technical context, invoke an operation and map the result.
 - Adapters must not contain business workflows, pricing, eligibility, lifecycle decisions or duplicated branching.
 - Infrastructure remains behind outbound ports; generic utilities must not hide business behavior.
+
+## Distributed retail runtime and offline operation
+
+- UC Rust supports central, store-edge, warehouse-edge and future declared deployment profiles built from the same domain model and application operations.
+- Edge is an autonomous runtime profile, not a passive cache and not a separately reimplemented product.
+- Every retail capability declares exactly one offline mode: `offline-capable`, `offline-capable-with-limits`, `read-only-offline`, `degraded-offline`, `online-required` or `forbidden-offline`.
+- The same public operation must preserve the same business semantics at central and edge; unavailable capabilities are reported explicitly through capability discovery rather than silently changing meaning.
+- Distinguish cache, replicated central data and edge-authoritative local data. They must not share an ambiguous lifecycle or authority model.
+- Every synchronized data class declares authority, freshness, consistency, retention, conflict policy and recovery behavior.
+- Generic last-write-wins conflict resolution is forbidden unless explicitly justified for that data class through an accepted decision.
+- Edge-authoritative business effects must survive WAN outage, process restart, update interruption and full re-sync.
+- Sync is a first-class platform capability with durable checkpoints, source identity, sequence, event identity, idempotency, retry, ordering, deduplication, reconciliation and version negotiation.
+- Central-to-edge snapshots/deltas and edge-to-central outbox/inbox flows are distinct and must be tested independently.
+- Bootstrap, re-bootstrap and full re-sync must preserve unsent local work and produce reproducible evidence.
+- Tests must cover WAN partition, reconnect, duplicate delivery, delayed delivery, out-of-order delivery, restart, partial failure and semantic conflict handling.
+- Offline authentication and authorization guarantees, revocation exposure and high-risk online-only operations must be explicit and tested.
+- Supported central version, edge version, DB schema, sync protocol, contract version, configuration schema, authorization schema and UC-BoK revision combinations are machine-validated.
 
 ## Replaceable infrastructure adapters
 
@@ -95,6 +123,24 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Clean install, upgrade, drift and compatibility tests are mandatory.
 - Destructive changes require a reviewed compatibility and recovery plan.
 
+## Edge fleet control and deployment
+
+- The central control plane owns desired state; every edge owns safe local reconciliation and reports actual state.
+- Edge update is pull-based so intermittent WAN cannot make successful rollout depend on a fragile central push session.
+- Every edge has a unique device identity bound to tenant/location and uses authenticated, authorized and auditable communication, preferably mTLS with rotation and revocation.
+- Fleet inventory includes hardware, OS, architecture, software versions, DB schema, sync protocol, configuration revision, authorization schema, UC-BoK revision, capability profile and last-seen state.
+- Release manifests and artifacts are immutable, content-addressed, signed and provenance/SBOM backed. Unsigned, corrupted, incompatible, revoked or unauthorized downgrade artifacts are rejected locally.
+- Software release, configuration revision, DB schema, sync protocol and authorization model may version independently but must pass one compatibility-envelope validation before activation.
+- Updates require preflight validation of compatibility, disk/memory, maintenance window, sync safety, local outbox durability and absence of critical retail operations.
+- Installation is resumable and staged. Use atomic switch, dual-slot/A-B or an equivalent proven mechanism where appropriate.
+- Post-update health verification decides commit or automatic rollback; application rollback must preserve business data and remain schema-compatible.
+- Rollout supports lab, canary, pilot, cohort, percentage and fleet-wide stages with automatic pause/rollback thresholds.
+- Technical health and retail-operational health are separate. A process may be running while the store cannot sell; an edge may be WAN-offline while remaining operational.
+- Required retail health includes ability to sell, pricing/configuration validity, local DB health, durable outbox state and synchronization freshness/backlog.
+- Desired/actual drift in software, configuration, schema, certificates, authorization model or deployed components is detected and actionable.
+- Remote operations are typed, least-privilege, authenticated, authorized, expiring, idempotent and audited. Permanent unrestricted remote shell access is not a management feature.
+- Tests must prove interruption safety, WAN loss during download/install, canary advancement, automatic pause, rollback, drift detection, certificate revocation and telemetry buffering.
+
 ## Testing and coverage
 
 - TDD red/green/refactor is the default for production behavior.
@@ -117,6 +163,7 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Run real migrations before integration tests.
 - Collect sanitized logs and diagnostics on failure and tear resources down automatically.
 - Local and GitHub Actions executions use the same versioned definitions.
+- Edge and fleet suites must provision ephemeral central and edge nodes, controllable WAN partitions and update artifacts.
 
 ## Documentation and examples
 
@@ -149,6 +196,7 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Indexes are justified against workload and write cost.
 - Transactions are minimal and observable; pools and timeouts are load-tested.
 - Helm requests/limits derive from measurements, load, soak and saturation tests.
+- Edge performance budgets include startup, local API latency, memory/CPU footprint, disk growth, sync throughput, backlog recovery time and operation under constrained hardware.
 
 ## Configuration, data and operations
 
@@ -184,6 +232,7 @@ Also read `governance/github-manifest.json` for GitHub metadata and `docs/govern
 - Cargo packages, binaries, container images, Helm charts and GitHub Releases use one coordinated SemVer.
 - Publishing derives from the immutable Release Please tag; existing tags/artifacts are never overwritten.
 - Release topology, registries, signing or independent versions require an ADR/RFC.
+- Edge release manifests must identify the compatible central, DB, sync, contract, configuration, authorization and UC-BoK versions.
 
 ## Validation
 
@@ -195,8 +244,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-Also run all applicable rustdoc, coverage, context, architecture, compatibility, authorization, adapter contract, fixture, migration, integration, failure-path, security and performance gates.
+Also run all applicable rustdoc, coverage, context, UC-BoK traceability, architecture, compatibility, authorization, adapter contract, fixture, migration, integration, WAN-partition, synchronization, fleet-rollout, failure-path, security and performance gates.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence, cache, storage, identity, authorization, consistency, event delivery, contracts, security, deployment, release, testing, documentation, operations, performance, migrations or the agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence, cache, storage, identity, authorization, consistency, event delivery, contracts, security, central/edge profiles, synchronization, data authority, fleet management, deployment, release, testing, documentation, operations, performance, migrations or the agentic operating model. Substantial or high-cost changes require an RFC before implementation.

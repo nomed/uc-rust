@@ -1,11 +1,37 @@
-# ADR-NNNN — Title
+---
+id: uc-rust:ADR-NNNN
+type: ADR
+schema_version: 1
+content_version: 0.1.0
+title: Title
+summary: Concise statement of the proposed architecture decision.
+status: Draft
+owners:
+  - role: architecture
+authors:
+  - role: author
+created_at: YYYY-MM-DD
+updated_at: YYYY-MM-DD
+scope: Concern governed by this decision.
+non_goals: []
+provenance:
+  - kind: issue
+    locator: https://github.com/nomed/uc-rust/issues/NN
+relations: []
+review:
+  required_roles: [architecture]
+  reviewers: []
+  disposition: pending
+lifecycle_events:
+  - from: null
+    to: Draft
+    at: YYYY-MM-DD
+    actor: author
+    rationale: Initial draft.
+    content_version: 0.1.0
+---
 
-- Status: proposed
-- Date: YYYY-MM-DD
-- Deciders: names or roles
-- Governing issue: #NN
-- Supersedes: none
-- Superseded by: none
+# ADR-NNNN — Title
 
 ## Context
 
@@ -25,7 +51,7 @@ Describe credible alternatives and why they were not selected.
 
 ## Evidence
 
-Link benchmarks, prototypes, standards, issues, discussions and external references.
+Reference reproducibly identifiable benchmarks, prototypes, standards, issues, discussions and observations. Evidence does not perform acceptance.
 
 ## Compliance
 

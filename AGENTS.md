@@ -54,6 +54,21 @@ When sources conflict, follow the precedence declared in `.context/manifest.yaml
 - Shared business behavior must not be hidden in generic utility modules.
 - Exceptions require an accepted ADR or RFC.
 
+## Replaceable infrastructure adapters
+
+- Domain and application crates depend on capability-oriented outbound ports, never provider SDKs.
+- PostgreSQL, SQLite and future databases are persistence adapters.
+- Redis, in-memory caches and future cache products are cache adapters.
+- S3-compatible storage, cloud object stores and local filesystems are blob/storage adapters.
+- SQL types, query builders, connection handles, Redis types, S3 SDK types, bucket names and filesystem paths must not leak into application contracts.
+- Provider selection happens in the composition root through configuration and dependency injection.
+- Ports must state required guarantees such as transactions, conditional writes, consistency, ordering, TTL, invalidation, streaming, range reads and idempotency.
+- An adapter that cannot satisfy a required guarantee must fail capability validation explicitly; it must not silently weaken behavior.
+- Every adapter implementation must pass the same reusable behavioral contract suite.
+- Provider-specific optimization is allowed only behind the port.
+- Engine-specific database migrations remain infrastructure details and must not alter business contracts.
+- Do not create speculative universal CRUD, key-value or storage abstractions; define ports around real application capabilities.
+
 ## Database evolution
 
 - Database migrations are ordered, immutable and forward-only.
@@ -110,8 +125,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-When applicable, also run context validation, architecture tests, migration clean-install tests and supported upgrade-path tests.
+When applicable, also run context validation, architecture tests, adapter contract suites, migration clean-install tests and supported upgrade-path tests.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence strategy, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.

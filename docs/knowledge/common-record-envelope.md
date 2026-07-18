@@ -1,9 +1,12 @@
 # Common Architecture Record Envelope
 
-- Status: Draft
+- Status: Complete
 - Governing issue: #56
 - Governing decision: ADR-0022
+- Lifecycle model: `docs/architecture/record-lifecycle.md`
 - Relationship model: `docs/architecture/relationship-model.md`
+- Authority model: `docs/architecture/authority-boundaries.md`
+- Schema: `schemas/architecture-record-envelope.schema.json`
 
 ## Purpose
 
@@ -71,7 +74,7 @@ yukh:META-RELATION-0001
 ebd:ER-0007
 ```
 
-The namespace identifies the authoritative repository or registry. Local identifiers are immutable and never reused. Titles, aliases and paths aid discovery but are not identity. Yukh may index and reconcile identifiers without becoming their authority.
+The namespace identifies the authoritative repository or registry. Local identifiers are immutable and never reused. Titles, aliases and paths aid discovery but are not identity. Cross-repository references preserve the owning identifier. Yukh may index and reconcile identifiers without becoming their authority.
 
 ## Version dimensions
 
@@ -82,9 +85,15 @@ The namespace identifies the authoritative repository or registry. Local identif
 
 Editorial fixes update `updated_at` but need not increment `content_version`.
 
+## Lifecycle
+
+`status` uses only the lifecycle states defined in `docs/architecture/record-lifecycle.md`: `Draft`, `Proposed`, `Accepted`, `Deprecated`, `Superseded`, `Rejected` and `Withdrawn`.
+
+Implementation progress, verification freshness, release inclusion and deployment state are orthogonal and must not be encoded as lifecycle values.
+
 ## Owners and reviewers
 
-Owners are accountable for correctness and freshness. Accountable roles may be used before named people are assigned. Reviewers provide independent disposition. Acceptance records who made the disposition and under which governance rule.
+Owners are accountable for correctness and freshness. Accountable roles may be used before named people are assigned. Reviewers provide independent disposition. Acceptance records who made the disposition and under which governance rule. Absence of objection is never acceptance.
 
 ## Scope and non-goals
 
@@ -92,7 +101,7 @@ Owners are accountable for correctness and freshness. Accountable roles may be u
 
 ## Provenance
 
-Initial source kinds are `issue`, `session`, `uc-bok`, `external-standard`, `incident`, `experiment` and `migration`. Provenance identifies origin, not correctness.
+Initial source kinds are `issue`, `session`, `uc-bok`, `external-standard`, `incident`, `experiment` and `migration`. Provenance identifies origin, not correctness or authority transfer.
 
 ## Relations
 
@@ -105,19 +114,19 @@ Each relation contains:
 - optional provenance;
 - `confidence` only for inferred, non-normative projection edges.
 
-Normative relations are written only in the authoritative source record. Hand-maintained inverse edges are forbidden except for lifecycle metadata explicitly required by the lifecycle model. The accepted vocabulary, source/target matrix, direction, temporal rules and validator invariants are defined in `docs/architecture/relationship-model.md`.
+Normative relations are written only in the authoritative source record. Hand-maintained inverse edges are forbidden except for lifecycle metadata explicitly required by the lifecycle model. The controlled vocabulary, source/target matrix, direction, temporal rules and validator invariants are defined in `docs/architecture/relationship-model.md`.
 
 Generic `related_to`, `links`, `see_also` and equivalent relation types are invalid.
 
 ## Evidence
 
-Evidence references are not anonymous URLs. Each item declares kind, locator, supported claim, produced date, relevant environment/fingerprint, freshness/expiry and result/disposition.
+Evidence references are not anonymous URLs. Each item declares kind, locator or canonical identifier, supported claim, produced date, relevant environment/fingerprint, freshness or expiry and result/disposition.
 
-Initial evidence kinds include code, test, benchmark, trace, report, deployment, operational observation, audit and review. Evidence does not become normative merely by being referenced or bundled by a release.
+Initial evidence kinds include code, test, benchmark, trace, report, deployment, operational observation, audit and review. Evidence does not become normative merely by being referenced or bundled by a release, and evidence alone cannot cause a lifecycle transition.
 
 ## Review metadata
 
-A review block declares required reviewer roles, current reviewers, disposition, review date, next review date/trigger, unresolved objections and bounded exceptions. Absence of objection is not acceptance.
+A review block declares required reviewer roles, current reviewers, disposition, review date, next review date or trigger, unresolved objections and bounded exceptions.
 
 ## Forbidden ambiguities
 
@@ -128,4 +137,9 @@ A review block declares required reviewer roles, current reviewers, disposition,
 - `release` does not imply lifecycle acceptance;
 - generic `links` do not replace typed relations;
 - inverse relation names do not replace canonical relation direction;
-- a relation does not prove conformance, deployment or acceptance.
+- a relation does not prove conformance, deployment or acceptance;
+- a local copy does not replace an unresolved external authority identifier.
+
+## Completion statement
+
+The envelope is complete for 1.0 because its fields, lifecycle semantics, relation semantics, authority rules and evidence separation are explicit, represented by a versioned schema and exercised by the canonical CR-0001 and RRR-0001 records.

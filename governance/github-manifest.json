@@ -2,10 +2,10 @@
   "schema_version": 1,
   "repository": "nomed/uc-rust",
   "cleanup": {
-    "delete_undefined_labels": true,
-    "delete_undefined_milestones": true,
-    "delete_undefined_project_fields": true,
-    "delete_unmanaged_project_items": true
+    "delete_undefined_labels": false,
+    "delete_undefined_milestones": false,
+    "delete_undefined_project_fields": false,
+    "delete_unmanaged_project_items": false
   },
   "labels": [
     {"name":"priority:P0","color":"b60205","description":"Critical: blocks the project or current milestone"},
@@ -35,10 +35,11 @@
     {"name":"area:golden-path","color":"1d76db","description":"Rust engineering golden path"},
     {"name":"area:basket","color":"0e8a16","description":"Basket capability"},
     {"name":"area:pricing","color":"fbca04","description":"Pricing capability"},
-    {"name":"area:checkout-order","color":"d93f0b","description":"Checkout and Order capabilities"}
+    {"name":"area:checkout-order","color":"d93f0b","description":"Checkout and Order capabilities"},
+    {"name":"area:economics","color":"8a2be2","description":"Economics by Design and unit economics"}
   ],
   "milestones": [
-    {"title":"M0 — Project Ready","description":"Complete project definition, agentic operating system, governance and readiness gate.","state":"open"},
+    {"title":"M0 — Project Ready","description":"Complete project definition, governance, enforcement foundations and readiness gate.","state":"open"},
     {"title":"M1 — Rust Foundation","description":"Production-grade Rust golden path and runtime baseline.","state":"open"},
     {"title":"M2 — Persistent Basket","description":"First complete Basket vertical slice with persistence, API and E2E verification.","state":"open"},
     {"title":"M3 — Commercial Basket","description":"Pricing-owned commercial calculation and traceable price snapshots.","state":"open"},
@@ -48,16 +49,16 @@
     "owner":"nomed",
     "number":4,
     "title":"UC Rust",
-    "description":"Roadmap and delivery governance for the UC Rust platform.",
-    "readme":"The project is managed from governance/github-manifest.json. Manual metadata changes are overwritten by the governance synchronization workflow.",
+    "description":"Roadmap and delivery governance for UC Rust, including Project Ready, distributed runtime, fleet control and Economics by Design.",
+    "readme":"Managed from governance/github-manifest.json. Pushes reconcile desired metadata non-destructively; explicit manual apply may perform cleanup.",
     "fields": [
       {"name":"Priority","type":"SINGLE_SELECT","options":["P0","P1","P2","P3"]},
       {"name":"Type","type":"SINGLE_SELECT","options":["Epic","Discovery","Architecture","Governance","Security","Planning","Gate","Foundation","Infrastructure","Feature","Domain","Test"]},
-      {"name":"Area","type":"SINGLE_SELECT","options":["Platform","Product","Architecture","Agentic System","Governance","Security","Delivery","Roadmap","Golden Path","Basket","Pricing","Checkout & Order"]},
+      {"name":"Area","type":"SINGLE_SELECT","options":["Platform","Product","Architecture","Agentic System","Governance","Security","Delivery","Roadmap","Golden Path","Basket","Pricing","Checkout & Order","Economics"]},
       {"name":"Release","type":"SINGLE_SELECT","options":["M0","M1","M2","M3","M4","Cross-release"]},
       {"name":"Size","type":"SINGLE_SELECT","options":["XS","S","M","L","XL"]}
     ],
-    "protected_fields":["Title","Assignees","Status","Labels","Milestone","Repository","Reviewers","Linked pull requests","Parent issue","Sub-issues progress","Tracks"],
+    "protected_fields":["Title","Assignees","Status","Labels","Milestone","Repository","Reviewers","Linked pull requests","Parent issue","Sub-issues progress","Tracks","Iteration","Estimate"],
     "status_options":["Backlog","Ready","In progress","In review","Blocked","Done"]
   },
   "issues": {
@@ -78,7 +79,7 @@
     "15":{"labels":["priority:P0","type:governance","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Governance","Release":"M0","Size":"M"}},
     "16":{"labels":["priority:P0","type:security","area:security"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Security","Area":"Security","Release":"M0","Size":"L"}},
     "17":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}},
-    "18":{"labels":["priority:P0","type:planning","area:roadmap"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Planning","Area":"Roadmap","Release":"M0","Size":"XL"}},
+    "18":{"labels":["priority:P0","type:planning","area:roadmap"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Planning","Area":"Roadmap","Release":"M0","Size":"XL"}},
     "19":{"labels":["priority:P0","type:gate","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"Blocked","Priority":"P0","Type":"Gate","Area":"Governance","Release":"M0","Size":"M"}},
     "20":{"labels":["priority:P0","type:governance","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Governance","Release":"M0","Size":"L"}},
     "21":{"labels":["priority:P0","type:governance","area:agentic-system"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Agentic System","Release":"M0","Size":"L"}},
@@ -89,9 +90,9 @@
     "26":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}},
     "27":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}},
     "28":{"labels":["priority:P0","type:security","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Security","Area":"Platform","Release":"M0","Size":"L"}},
-    "29":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"XL"}},
+    "29":{"labels":["priority:P0","type:architecture","area:economics"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Economics","Release":"M0","Size":"XL"}},
     "30":{"labels":["priority:P0","type:governance","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Architecture","Release":"M0","Size":"L"}},
-    "31":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
+    "31":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
     "32":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"XL"}},
     "33":{"labels":["priority:P0","type:foundation","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Foundation","Area":"Platform","Release":"M0","Size":"L"}},
     "34":{"labels":["priority:P0","type:security","area:security"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Security","Area":"Security","Release":"M0","Size":"L"}},
@@ -102,6 +103,8 @@
     "39":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"XL"}},
     "40":{"labels":["priority:P0","type:architecture","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Delivery","Release":"M0","Size":"XL"}},
     "41":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}},
-    "42":{"labels":["priority:P0","type:foundation","area:golden-path"],"milestone":"M0 — Project Ready","project":{"Status":"Ready","Priority":"P0","Type":"Foundation","Area":"Golden Path","Release":"M0","Size":"XL"}}
+    "42":{"labels":["priority:P0","type:foundation","area:golden-path"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Foundation","Area":"Golden Path","Release":"M0","Size":"XL"}},
+    "43":{"labels":["priority:P0","type:architecture","area:economics"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Economics","Release":"M0","Size":"L"}},
+    "44":{"labels":["priority:P0","type:test","area:economics"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Economics","Release":"M0","Size":"L"}}
   }
 }

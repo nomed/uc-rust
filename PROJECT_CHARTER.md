@@ -1,6 +1,6 @@
 # UC Rust Project Charter
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Governing issue: #11
 - Normative knowledge source: `nomed/uc-bok`
 - Reference implementation: `nomed/uc-rust`
@@ -45,7 +45,7 @@ UC Rust is a distributed Unified Commerce platform and reference implementation 
 - business behavior has one canonical implementation;
 - central and edge profiles reuse the same domain and application Operations;
 - every external interface is versioned, documented and example-backed;
-- infrastructure providers remain replaceable adapters;
+- infrastructure and specialist capability providers remain replaceable behind governed contracts;
 - selected retail processes remain safe during WAN outage;
 - synchronization converges without lost or duplicated business effects;
 - edge nodes are securely deployed, inventoried, monitored and recovered;
@@ -60,7 +60,7 @@ UC Rust demonstrates that a Unified Commerce platform can combine semantic integ
 2. one-place business behavior across adapters and runtime profiles;
 3. explicit central/edge authority and convergence guarantees;
 4. measurable security, reliability, performance and economics;
-5. governed extensibility without vendor leakage into the core.
+5. governed extensibility and capability delegation without vendor leakage into the core.
 
 ## Initial delivery strategy
 
@@ -86,6 +86,7 @@ Candidate later profiles:
 - REST and at least one additional delivery adapter over one application core; other adapter forms remain governed extension targets.
 - PostgreSQL and SQLite persistence behind stable ports where required by the proving journey.
 - Replaceable authorization, payment, fiscal and infrastructure provider boundaries.
+- Governed delegation of selected capability Operations to external systems, including pricing/promotion, loyalty, customer enquiry, invoicing and other specialist services where authority, failure, compatibility and evidence are explicit.
 - OAuth 2.0/OpenID Connect authentication and Zanzibar-compatible authorization.
 - Central and store-edge deployment profiles with explicit offline capability classification.
 - Durable synchronization, outbox/inbox, reconciliation and compatibility negotiation.
@@ -104,15 +105,16 @@ Candidate later profiles:
 - Mandatory microservice decomposition; modularity and replaceability matter more than service count.
 - Vendor-specific business semantics in the domain core.
 - Uncontrolled plugins that bypass application, security or quality boundaries.
+- Transparent remote delegation that hides authority, latency, partial failure, idempotency or offline consequences.
 - AI autonomy without human oversight, measurable evaluation, audit and safe fallback.
 - Retail media, influencer attribution, service/repair management, full clienteling and full enterprise fulfillment implementation.
 - A custom async executor, consensus system, general-purpose dependency injection container or mandatory broker.
 
 ## Build-versus-integrate principles
 
-Build when the capability represents core Unified Commerce semantics, canonical business behavior, distributed consistency or platform governance. Integrate when a mature specialist system owns the capability, including payment processing, external identity providers, specialized AI, devices, tax/fiscal systems or enterprise applications.
+Build when the capability represents core Unified Commerce semantics, canonical business behavior, distributed consistency or platform governance. Integrate or delegate when a mature specialist system owns the realization or operational authority, including promotion engines, loyalty platforms, customer services, invoicing/fiscal systems, payment processing, external identity providers, specialized AI, devices or enterprise applications.
 
-Every integration must use a stable capability-oriented port and contract tests. Provider types must not leak into the application core. Integrating a capability does not remove the obligation to define authority, failure behavior, compatibility and evidence.
+Every integration or delegated capability must use a stable capability-oriented port and contract tests. Provider types must not leak into the application core. Delegation must preserve the canonical Operation semantics while making provider authority, supported methods, version compatibility, deadlines, idempotency, fallback, offline behavior, observability and economic attribution explicit. Integrating a capability does not remove the obligation to define authority, failure behavior, compatibility and evidence.
 
 ## Market evidence dispositions
 
@@ -142,10 +144,10 @@ No external market feature becomes scope without an owner, rationale, release, d
 Project Ready requires every P0 quality attribute to have:
 
 - a measurable invariant or budget;
-- a governing ADR/RFC and issue;
+- governing ADR/RFC and issue;
 - automated enforcement where feasible;
 - reproducible evidence;
-- an accountable owner;
+- accountable owner;
 - explicit status and governed exceptions.
 
 No production Rust behavior is accepted without meaningful line and branch coverage, current documentation and evidence proportionate to its risk. Coverage percentage is a guardrail, not a substitute for test quality.
@@ -184,6 +186,7 @@ No production Rust behavior is accepted without meaningful line and branch cover
 - Creating abstractions that hide essential provider capability differences.
 - Allowing fleet deployment, migration or authorization versions to drift without compatibility validation.
 - Building a generic platform framework not justified by the 1.0 proving journey.
+- Treating a remote provider call as if it were a local method and thereby hiding partial failure, latency, authority and offline constraints.
 
 ## Terminology
 

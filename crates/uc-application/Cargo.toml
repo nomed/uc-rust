@@ -1,0 +1,12 @@
+[package]
+name = "uc-application"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+uc-domain = { path = "../uc-domain" }
+
+[lints]
+workspace = true

@@ -1,11 +1,13 @@
 schema_version: 1
 project: uc-rust
 context_root: .context
+quality_model: .context/quality-attributes/system-quality-model.md
 
 precedence:
   - current_human_instruction
   - accepted_decisions
   - accepted_rfcs
+  - system_quality_model
   - project_charter_and_target_architecture
   - nearest_agents_md
   - governing_issue_and_pull_request
@@ -28,9 +30,12 @@ records:
       - public_contract_change
       - deployment_topology_change
       - security_model_change
+      - authentication_or_authorization_model_change
       - release_or_packaging_model_change
       - persistent_data_ownership_change
       - new_external_platform_dependency
+      - consistency_or_delivery_semantics_change
+      - operability_or_disaster_recovery_change
   handoffs:
     path: .context/handoffs
     id_pattern: "HANDOFF-{date}-{sequence:02d}"
@@ -39,6 +44,17 @@ records:
     path: .context/sessions
     id_pattern: "SESSION-{date}-{sequence:02d}"
     authoritative: false
+  quality_attributes:
+    path: .context/quality-attributes
+    authoritative: true
+    required_fields:
+      - quality_attribute
+      - requirement_or_invariant
+      - metric_or_threshold
+      - governing_record_or_issue
+      - enforcement_evidence
+      - owner
+      - status
 
 templates:
   decision: .context/templates/decision.md
@@ -48,24 +64,31 @@ templates:
 
 role_loading:
   orchestrator:
-    required: [manifest, agents, project_charter, accepted_decisions, accepted_rfcs, roadmap]
+    required: [manifest, agents, quality_model, project_charter, accepted_decisions, accepted_rfcs, roadmap]
   product_analyst:
-    required: [manifest, agents, project_charter, glossary, accepted_decisions]
+    required: [manifest, agents, quality_model, project_charter, glossary, accepted_decisions]
   domain_architect:
-    required: [manifest, agents, project_charter, target_architecture, accepted_decisions, accepted_rfcs]
+    required: [manifest, agents, quality_model, project_charter, target_architecture, accepted_decisions, accepted_rfcs]
   implementation_agent:
-    required: [manifest, agents, governing_issue, accepted_decisions, accepted_rfcs, latest_handoff]
+    required: [manifest, agents, quality_model, governing_issue, accepted_decisions, accepted_rfcs, latest_handoff]
   verification_agent:
-    required: [manifest, agents, governing_issue, acceptance_criteria, changed_files, latest_handoff]
+    required: [manifest, agents, quality_model, governing_issue, acceptance_criteria, changed_files, latest_handoff]
   security_agent:
-    required: [manifest, agents, security_policy, threat_model, accepted_decisions, accepted_rfcs]
+    required: [manifest, agents, quality_model, security_policy, threat_model, accepted_decisions, accepted_rfcs]
+  reliability_agent:
+    required: [manifest, agents, quality_model, governing_issue, diagnostics_policy, accepted_decisions]
+  performance_agent:
+    required: [manifest, agents, quality_model, governing_issue, workload_model, performance_budgets]
   release_agent:
-    required: [manifest, agents, release_policy, accepted_decisions, accepted_rfcs]
+    required: [manifest, agents, quality_model, release_policy, accepted_decisions, accepted_rfcs]
 
 write_policy:
   sessions: agents_allowed
   handoffs: agents_allowed
   decisions: proposal_allowed_human_acceptance_required
   rfcs: draft_allowed_human_acceptance_required
+  quality_model: agents_may_update_human_approval_for_p0_acceptance
   architecture_change_without_record: forbidden
+  security_change_without_record: forbidden
+  p0_requirement_without_enforcement_or_blocking_issue: forbidden
   destructive_operation_without_explicit_approval: forbidden

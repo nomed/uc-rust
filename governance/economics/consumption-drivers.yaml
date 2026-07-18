@@ -3,6 +3,10 @@ drivers:
   - id: compute.cpu_time
     unit: nanosecond
     class: measured
+  - id: compute.elapsed_time
+    unit: nanosecond
+    class: measured
+    notes: Wall-clock duration; it must never be presented as CPU time.
   - id: compute.allocated_memory
     unit: byte
     class: measured
@@ -14,7 +18,8 @@ drivers:
     class: measured
   - id: database.transaction
     unit: transaction
-    class: measured
+    class: measured-or-attributed
+    notes: Measured only when provided by a database counter; otherwise explicitly attributed from the adapter contract.
   - id: storage.bytes_written
     unit: byte
     class: measured
@@ -47,14 +52,19 @@ rules:
   - Every driver has one canonical identifier and unit.
   - Derived monetary cost references a versioned rate card and costing policy.
   - Retries, duplicate amplification and observability overhead remain visible rather than folded into successful-unit consumption.
+  - Wall-clock elapsed time and CPU time are distinct drivers and must not be substituted silently.
+  - Database operation counts derived from source structure or contracts are attributed, not measured.
 initial_slice:
   economic_unit: uc.synced_business_event
   required_drivers:
-    - compute.cpu_time
-    - database.read_operation
-    - database.write_operation
+    - compute.elapsed_time
     - database.transaction
     - storage.bytes_written
     - network.wan_bytes
     - sync.delivery_attempt
     - sync.duplicate_delivery
+  deferred_until_profiler_adapter:
+    - compute.cpu_time
+    - compute.allocated_memory
+    - database.read_operation
+    - database.write_operation

@@ -11,12 +11,12 @@
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {
-          "type": "toml",
+          "type": "yaml",
           "path": "charts/uc-rust/Chart.yaml",
           "jsonpath": "$.version"
         },
         {
-          "type": "toml",
+          "type": "yaml",
           "path": "charts/uc-rust/Chart.yaml",
           "jsonpath": "$.appVersion"
         }

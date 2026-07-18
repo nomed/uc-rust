@@ -1,0 +1,60 @@
+schema_version: 1
+drivers:
+  - id: compute.cpu_time
+    unit: nanosecond
+    class: measured
+  - id: compute.allocated_memory
+    unit: byte
+    class: measured
+  - id: database.read_operation
+    unit: operation
+    class: measured
+  - id: database.write_operation
+    unit: operation
+    class: measured
+  - id: database.transaction
+    unit: transaction
+    class: measured
+  - id: storage.bytes_written
+    unit: byte
+    class: measured
+  - id: storage.byte_day_retained
+    unit: byte_day
+    class: attributed
+  - id: network.lan_bytes
+    unit: byte
+    class: measured
+  - id: network.wan_bytes
+    unit: byte
+    class: measured
+  - id: sync.delivery_attempt
+    unit: attempt
+    class: measured
+  - id: sync.duplicate_delivery
+    unit: delivery
+    class: measured
+  - id: sync.backlog_event_second
+    unit: event_second
+    class: measured
+  - id: external.api_call
+    unit: call
+    class: measured
+  - id: operator.intervention
+    unit: minute
+    class: attributed
+rules:
+  - Technical drivers are not Economic Units unless explicitly accepted through ADR-0019 governance.
+  - Every driver has one canonical identifier and unit.
+  - Derived monetary cost references a versioned rate card and costing policy.
+  - Retries, duplicate amplification and observability overhead remain visible rather than folded into successful-unit consumption.
+initial_slice:
+  economic_unit: uc.synced_business_event
+  required_drivers:
+    - compute.cpu_time
+    - database.read_operation
+    - database.write_operation
+    - database.transaction
+    - storage.bytes_written
+    - network.wan_bytes
+    - sync.delivery_attempt
+    - sync.duplicate_delivery

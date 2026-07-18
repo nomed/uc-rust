@@ -1,6 +1,6 @@
 # ADR-0021 — Operation First Architecture
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-18
 - Governing issue: #47
 - Parent epic: #46

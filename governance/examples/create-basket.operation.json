@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "operation_id": "uc-rust:basket.create",
+  "semantic_version": "1.0.0",
+  "capability_id": "uc-rust:CR-0001",
+  "owner": "commerce-domain",
+  "summary": "Create a new canonical basket in the governed tenant and runtime context.",
+  "contracts": {
+    "input": "contracts/basket/create-basket.input.schema.json",
+    "output": "contracts/basket/create-basket.output.schema.json",
+    "errors": "contracts/common/operation-errors.schema.json"
+  },
+  "invocation": {
+    "mode": "request_response",
+    "deadline_policy": "basket-mutation-default",
+    "cancellation": "safe_points"
+  },
+  "authorization": {
+    "default": "deny",
+    "actions": ["basket:create"],
+    "resource_derivation": "tenant and location from verified invocation context",
+    "post_state_check": false,
+    "audit": true
+  },
+  "idempotency": {
+    "policy": "required",
+    "scope": ["tenant", "actor", "operation_version"],
+    "retention": "P7D",
+    "concurrent_duplicate": "join"
+  },
+  "transaction": {
+    "policy": "local_atomic",
+    "atomic_effects": ["basket-created", "idempotency-disposition", "outbox-record"],
+    "reconciliation": "not-required-after-committed-local-atomic-outcome"
+  },
+  "effects": {
+    "categories": ["domain_event", "outbox", "audit"],
+    "publication_owner": "operation"
+  },
+  "profiles": ["central", "store-edge", "store-edge-offline", "test"],
+  "observability": {
+    "trace": true,
+    "metrics": true,
+    "sensitive_payloads": "excluded_by_default"
+  },
+  "economics": {
+    "unit": "basket_created",
+    "attribution": "required"
+  },
+  "evidence": {
+    "fixtures": [
+      "fixtures/operations/basket-create/happy-path.json",
+      "fixtures/operations/basket-create/duplicate-idempotency.json",
+      "fixtures/operations/basket-create/not-authorized.json"
+    ],
+    "contract_tests": [
+      "same-fixtures-through-rest-and-cli",
+      "duplicate-invocation-replays-canonical-outcome",
+      "deadline-propagates-to-capability-ports"
+    ],
+    "architecture_tests": [
+      "delivery-adapters-cannot-import-repositories",
+      "delivery-adapters-cannot-import-provider-sdks",
+      "operation-cannot-access-service-locator"
+    ]
+  }
+}

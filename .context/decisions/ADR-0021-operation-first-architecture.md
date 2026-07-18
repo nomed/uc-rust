@@ -2,7 +2,8 @@
 
 - Status: Proposed
 - Date: 2026-07-18
-- Governing issue: to be assigned
+- Governing issue: #47
+- Parent epic: #46
 - Related: ADR-0002, ADR-0015, ADR-0018
 
 ## Context

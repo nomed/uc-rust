@@ -1,0 +1,70 @@
+name: Verify Quick Once
+
+on:
+  push:
+    branches:
+      - verification/quick-once
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-quick-once
+  cancel-in-progress: true
+
+jobs:
+  quick:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          components: clippy,rustfmt
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install quick tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-nextest
+
+      - name: Format
+        run: just fmt 2>&1 | tee fmt.log
+
+      - name: Lint
+        run: just lint 2>&1 | tee lint.log
+
+      - name: Test
+        run: just test 2>&1 | tee test.log
+
+      - name: Documentation
+        run: just docs 2>&1 | tee docs.log
+
+      - name: Repository and architecture validation
+        run: just validate 2>&1 | tee validate.log
+
+      - name: Publish summary
+        if: always()
+        run: |
+          {
+            echo "## One-shot quick verification"
+            echo ""
+            echo "- Commit: `${{ github.sha }}`"
+            echo "- This workflow is restricted to `verification/quick-once`."
+            echo "- Automatic workflows on `main` remain disabled."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-verification-diagnostics
+          path: "*.log"
+          if-no-files-found: warn
+          retention-days: 7

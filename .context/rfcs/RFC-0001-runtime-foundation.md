@@ -2,16 +2,16 @@
 id: uc-rust:RFC-0002
 type: RFC
 schema_version: 1
-content_version: 0.3.0
+content_version: 1.0.0
 title: UC Runtime Foundation
 summary: Define the smallest shared runtime required to execute canonical UC Rust Operations consistently across central, store-edge and future runtime profiles.
-status: Draft
+status: Reviewable for acceptance
 owners:
   - role: runtime-architecture
 authors:
   - role: architecture
 created_at: 2026-07-18
-updated_at: 2026-07-18
+updated_at: 2026-07-19
 scope: Shared runtime invocation, lifecycle, configuration, observability, work scheduling, capability binding and extension responsibilities.
 non_goals:
   - General-purpose dependency injection container
@@ -31,10 +31,18 @@ relations:
     target: uc-rust:ADR-0024
   - type: depends_on
     target: uc-rust:ADR-0025
+  - type: refined_by
+    target: uc-rust:ADR-0026
+  - type: refined_by
+    target: uc-rust:ADR-0027
+  - type: refined_by
+    target: uc-rust:ADR-0028
+  - type: refined_by
+    target: uc-rust:ADR-0029
 review:
   required_roles: [runtime-architecture, reliability, security]
   reviewers: []
-  disposition: pending
+  disposition: pending accountable acceptance
 aliases:
   - RFC-0001-runtime-foundation.md
   - RFC-0001 — UC Runtime Foundation
@@ -45,6 +53,12 @@ lifecycle_events:
     actor: architecture
     rationale: Initial draft; canonical identifier remapped during 1.0 migration to resolve duplicate RFC-0001 reservation.
     content_version: 0.1.0
+  - from: Draft
+    to: Reviewable for acceptance
+    at: 2026-07-19
+    actor: architecture
+    rationale: Child architecture decisions ADR-0021 and ADR-0024 through ADR-0029 are accepted; scope, obligations and implementation evidence are fully dispositioned.
+    content_version: 1.0.0
 ---
 
 # RFC-0002 — UC Runtime Foundation
@@ -85,7 +99,7 @@ The first runtime release does not provide:
 - implicit fallback that changes authority or semantic guarantees;
 - mutable global configuration or direct environment reads from Operations.
 
-## Proposed crate boundaries
+## Logical component boundaries
 
 ```text
 uc-operation        identifiers, contracts, invocation context and outcome
@@ -98,7 +112,7 @@ uc-work             scheduler, job and worker execution contracts
 uc-extension        governed extension registration and compatibility
 ```
 
-Crates may be consolidated where separate packages would add cost without enforcing a meaningful boundary. Final boundaries require a component scorecard and architecture review. `uc-capability` is a logical boundary; it need not become a separate crate if the same dependency constraints are enforced inside `uc-runtime`.
+These are required dependency and responsibility boundaries, not a commitment to eight physical crates. Physical consolidation is permitted where dependency enforcement, ownership and test isolation remain equivalent. The M1 component scorecard decides package boundaries using coupling, build cost, API stability, runtime footprint and cost-to-serve evidence.
 
 ## Invocation pipeline
 
@@ -117,13 +131,11 @@ adapter decode
  -> adapter encode
 ```
 
-Each stage must be optional or replaceable through an explicit contract. The pipeline must not become a hidden business-rule engine. Delivery adapters never select realizations and Operations never receive an unrestricted service locator.
+Each stage is optional or replaceable only through an explicit contract. The pipeline cannot become a hidden business-rule engine. Delivery adapters never select realizations and Operations never receive an unrestricted service locator.
 
 ## Lifecycle and composition contract
 
 ADR-0025 governs lifecycle, configuration and composition.
-
-The runtime uses the lifecycle:
 
 ```text
 Created -> Bootstrapping -> Starting -> Ready/Degraded
@@ -148,11 +160,11 @@ Configuration snapshots are schema-versioned, content-digested and immutable. Fi
 
 Reload follows prepare, validate, optional quiesce/drain, atomic commit, activate and verify. A rejected candidate leaves the current snapshot unchanged. Partial mutation and silent mixed revisions are forbidden. In-flight invocations retain the configuration and binding revisions captured at admission.
 
-The normative schema is `governance/schemas/runtime-profile-config.schema.json`; detailed semantics are in `docs/architecture/runtime-lifecycle-and-composition.md`.
+Detailed semantics are governed by ADR-0025 and `docs/architecture/runtime-lifecycle-and-composition.md`. Machine-readable schemas are M1 implementation artifacts and cannot be claimed until committed and validated.
 
 ## Governed Capability Realization runtime contract
 
-The runtime:
+ADR-0024 governs Capability Realization. The runtime:
 
 - loads and validates approved realization manifests;
 - resolves an Operation through a deterministic, versioned Capability Binder;
@@ -169,38 +181,46 @@ The runtime does not claim that remote and local realizations have identical ope
 ## Runtime profiles
 
 - `central`: complete configured capability set and global integrations;
-- `store-edge`: declared offline-capable subset with local persistence, durable local manifests, local/delegated realizations and sync;
+- `store-edge`: declared offline-capable subset with local persistence, durable local manifests, local/delegated realizations and synchronization;
 - `warehouse-edge`: future profile using the same Operation contracts;
 - test profiles: deterministic in-memory, native, delegated and composed realization composition.
 
 A profile advertises eligible realization manifests and offline classes. Edge deployment alone never implies that an Operation has an offline-capable realization. WAN connectivity is not a universal store-edge readiness dependency.
 
-## Quality and cost constraints
+## Quality, security and economic constraints
 
 - no runtime dependency in domain crates;
 - no hidden global mutable state;
 - no service locator accessible from Operations;
 - no provider SDK type in canonical Operation contracts;
-- allocation and latency budgets per invocation and per realization stage;
+- allocation and latency budgets per invocation and realization stage;
 - startup, readiness, idle CPU and memory budgets per profile;
-- bounded quiesce/drain/shutdown deadlines;
+- bounded quiesce, drain and shutdown deadlines;
 - independent provider concurrency, bulkhead and circuit-breaker budgets;
-- one Operation must be callable through multiple adapters without semantic drift;
-- native and delegated realizations must pass the same semantic conformance fixtures;
-- all public contracts documented and covered by fixtures/tests;
-- provider and composition choices selected with cost-to-serve scorecards only after semantic, authority, security and quality eligibility.
+- one Operation callable through multiple adapters without semantic drift;
+- native and delegated realizations passing the same semantic conformance fixtures;
+- public contracts documented and covered by fixtures/tests;
+- provider and composition choices selected with cost-to-serve scorecards only after semantic, authority, security and quality eligibility;
+- deny-by-default authorization and explicit tenant/legal scope;
+- provider credentials and protected diagnostics restricted to typed adapter ports;
+- offline behavior declared per Operation and realization rather than inferred from profile.
 
-## Open questions
+## Child decision disposition
 
-- final physical crate consolidation after component scorecards;
-- scheduler guarantees and persistent job ownership;
-- minimum embedded edge footprint;
-- durable reconciliation ownership for indeterminate external outcomes;
-- exact health/operability aggregation contract, governed by #49.
+The umbrella design is refined by accepted decisions:
 
-## Exit evidence
+- ADR-0021 — Operation First Architecture;
+- ADR-0024 — Governed Capability Realization;
+- ADR-0025 — Runtime Lifecycle, Configuration and Explicit Composition;
+- ADR-0026 — Observability, Health, Errors and Economic Correlation;
+- ADR-0027 — Scheduled, Background and Worker Execution Through Operations;
+- ADR-0028 — Transport-Neutral Adapter Execution Model;
+- ADR-0029 — Extension, Plugin and Capability Registration Boundaries.
 
-- accepted ADR-0021, ADR-0024 and ADR-0025;
+No unresolved architectural question blocks M1. Exact physical crate consolidation, embedded footprint values and concrete technology choices remain implementation decisions constrained by accepted budgets and evidence gates.
+
+## Exit evidence required from M1
+
 - operation contract and invocation tests;
 - lifecycle state-machine and startup rollback tests;
 - atomic configuration reload and rejected-candidate tests;
@@ -209,7 +229,13 @@ A profile advertises eligible realization manifests and offline classes. Edge de
 - native and delegated realizations passing shared canonical fixtures;
 - binding tests across at least tenant and runtime-profile dimensions;
 - failure, timeout, idempotency, fallback and indeterminate-outcome tests;
-- one governed composed/pipeline proof;
+- one governed composed or pipeline proof;
 - central and edge composition proof, including WAN-loss operability;
 - benchmark and component/realization-attributed economic report;
-- architecture dependency evidence preventing adapter bypass, provider leakage, mutable globals and service-locator access.
+- architecture dependency evidence preventing adapter bypass, provider leakage, mutable globals and service-locator access;
+- permission, compatibility, registration and rollback evidence for extensions;
+- traceability evidence against the pinned UC-BoK baseline.
+
+## Acceptance statement
+
+This RFC is architecturally complete and may be accepted before executable M1 proof exists. Acceptance authorizes implementation of the bounded Runtime Foundation; it does not assert that any M1 exit evidence has already been produced.

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "rust",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "pull-request-title-pattern": "chore(main): release ${version}",
+  "packages": {
+    ".": {
+      "component": "uc-rust",
+      "release-type": "rust",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "charts/uc-rust/Chart.yaml",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "toml",
+          "path": "charts/uc-rust/Chart.yaml",
+          "jsonpath": "$.appVersion"
+        }
+      ]
+    }
+  }
+}

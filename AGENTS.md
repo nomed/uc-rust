@@ -2,157 +2,188 @@
 
 ## Mission
 
-Evolve UC Rust as both a proprietary Unified Commerce platform and a high-quality Rust golden path.
+Evolve UC Rust as a proprietary Unified Commerce platform and an exemplary Rust golden path without allowing code, context, security, reliability or quality controls to diverge.
 
 ## Required reading
 
-Before any meaningful work, read in this order:
+Before meaningful work, read in this order:
 
 1. `.context/manifest.yaml`
 2. `.context/README.md`
 3. this `AGENTS.md` and any nearer nested `AGENTS.md`
 4. accepted records under `.context/decisions/`
 5. accepted records under `.context/rfcs/` relevant to the task
-6. the governing GitHub issue and latest applicable handoff
-7. `CONTEXT.md`, project charter and target architecture documents relevant to the task
-8. the affected crate public API and tests
+6. `.context/quality-attributes/system-quality-model.md`
+7. the governing GitHub issue and latest applicable handoff
+8. project charter, target architecture, affected public APIs and tests
 
-Also read:
-
-- `governance/github-manifest.json` when changing issues, labels, milestones or Project metadata;
-- `docs/governance/release-packaging.md` when changing versions, packaging, publishing or deployment artifacts.
-
-When sources conflict, follow the precedence declared in `.context/manifest.yaml`. Do not guess or silently reconcile material conflicts.
+Also read `governance/github-manifest.json` for GitHub metadata and `docs/governance/release-packaging.md` for release work. Follow `.context/manifest.yaml` precedence and never silently reconcile material conflicts.
 
 ## Context is part of completion
 
-- `.context/` is the durable operating memory for humans and agents.
-- Maintaining `.context/` is mandatory work, not optional documentation.
-- Every meaningful change must declare its context impact.
-- Update durable records when architecture, domain ownership, public contracts, security, release behavior, database schema, governance or accepted assumptions change.
-- Meaningful work requires a session record.
+- `.context/` is durable operating memory, not optional documentation.
+- Every meaningful change declares context impact and creates a session record.
 - Incomplete or delegated work requires a handoff.
-- Sessions and handoffs preserve continuity and evidence but are not architecture authority.
-- Material decisions must be promoted into numbered ADRs or RFCs rather than left only in a session, issue comment or chat.
-- Agents may draft ADRs and RFCs; human approval is required to mark material decisions accepted.
-- Accepted records are immutable. Replace them only through a new record that marks the old one superseded.
-- When no context update is needed, record a concrete `no context impact` justification.
-- Do not consider work complete while code and authoritative context disagree.
-- Never store secrets, private chain-of-thought or unredacted sensitive data in context records.
+- Material decisions must be promoted into numbered ADRs or RFCs.
+- Accepted records are immutable; supersede them with a new record.
+- A concrete `no context impact` justification is required when applicable.
+- Work is incomplete while code and authoritative context disagree.
+- Never store secrets, private chain-of-thought or unredacted sensitive data.
+
+## System quality completeness
+
+- Every P0 quality requirement must appear in `.context/quality-attributes/system-quality-model.md`.
+- Each row requires a measurable invariant or budget, owner, governing record/issue, automated enforcement and evidence.
+- Exceptions require reason, compensating control, owner and expiry.
+- Expired or undocumented exceptions fail the Project Ready gate.
 
 ## Single application core
 
-- UC Rust uses hexagonal / ports-and-adapters architecture with use-case-oriented application operations.
+- Use hexagonal / ports-and-adapters architecture with use-case-oriented application operations.
 - Every business operation has one canonical implementation.
 - Domain types own invariants and state transitions.
-- Application operations own use-case orchestration, transaction boundaries, idempotency coordination and process flow.
-- REST, gRPC, messaging consumers, workers, scheduled jobs, CLI and batch processes are inbound adapters only.
-- Inbound adapters may authenticate, validate transport syntax, map DTOs, establish technical context, invoke an application operation and map its result.
-- Inbound adapters must not contain pricing rules, eligibility rules, lifecycle decisions, business workflow procedures or duplicated business branching.
-- A worker or job must invoke the same application operation used by interactive adapters.
-- Infrastructure implementations remain behind outbound ports.
-- Shared business behavior must not be hidden in generic utility modules.
-- Exceptions require an accepted ADR or RFC.
+- Application operations own orchestration, transactions, idempotency and process flow.
+- REST, gRPC, consumers, workers, jobs, CLI and batch processes are inbound adapters only.
+- Inbound adapters may authenticate, validate transport syntax, map DTOs, establish technical context, invoke an operation and map the result.
+- Adapters must not contain business workflows, pricing, eligibility, lifecycle decisions or duplicated branching.
+- Infrastructure remains behind outbound ports; generic utilities must not hide business behavior.
 
 ## Replaceable infrastructure adapters
 
-- Domain and application crates depend on capability-oriented outbound ports, never provider SDKs.
+- Domain and application crates depend on capability-oriented ports, never provider SDKs.
 - PostgreSQL, SQLite and future databases are persistence adapters.
-- Redis, in-memory caches and future cache products are cache adapters.
-- S3-compatible storage, cloud object stores and local filesystems are blob/storage adapters.
-- SQL types, query builders, connection handles, Redis types, S3 SDK types, bucket names and filesystem paths must not leak into application contracts.
-- Provider selection happens in the composition root through configuration and dependency injection.
-- Ports must state required guarantees such as transactions, conditional writes, consistency, ordering, TTL, invalidation, streaming, range reads and idempotency.
-- An adapter that cannot satisfy a required guarantee must fail capability validation explicitly; it must not silently weaken behavior.
-- Every adapter implementation must pass the same reusable behavioral contract suite.
-- Provider-specific optimization is allowed only behind the port.
-- Engine-specific database migrations remain infrastructure details and must not alter business contracts.
-- Do not create speculative universal CRUD, key-value or storage abstractions; define ports around real application capabilities.
+- Redis and in-memory products are cache adapters.
+- S3-compatible stores and filesystems are storage adapters.
+- SpiceDB is the initial authorization adapter, not an application-core dependency.
+- Provider-specific types, connections, paths, buckets, tokens and errors must not leak inward.
+- Provider selection occurs in the composition root.
+- Ports state required guarantees: transactions, consistency, ordering, TTL, invalidation, streaming, range reads and idempotency.
+- Unsupported guarantees fail explicitly; silent semantic degradation is forbidden.
+- Every adapter passes the same reusable contract suite.
+- Avoid speculative universal CRUD/key-value abstractions; model real capabilities.
+
+## Authentication and authorization
+
+- Authentication uses provider-neutral OAuth 2.0 and OpenID Connect.
+- Interactive flows use Authorization Code with PKCE; services use workload identity or an explicitly approved machine flow.
+- Validate issuer, audience, signature, expiry, key rotation and clock skew.
+- Authorization follows a Zanzibar-style relationship model and is deny-by-default.
+- Every protected application operation declares subject, resource, permission and required consistency.
+- RBAC is expressed through relations/groups rather than handler conditionals.
+- Tenant isolation is structural and must have cross-tenant negative tests.
+- Use SpiceDB ZedTokens or another explicit consistency mechanism for causal/read-after-write sensitive workflows.
+- Authorization unavailability must never silently become allow.
+- Authorization schemas are versioned, migrated, tested and rollback-aware.
+
+## Contract evolution and consistency
+
+- Public REST, gRPC, event and serialized contracts require explicit versioning and compatibility rules.
+- Breaking changes require an accepted RFC, migration plan and deprecation lifecycle.
+- Every state-changing operation declares concurrency and idempotency semantics.
+- Handle duplicate requests/messages, retries and out-of-order delivery explicitly.
+- Use outbox/inbox or another accepted reliable-publication mechanism where needed.
+- Do not claim exactly-once semantics without evidence.
 
 ## Database evolution
 
-- Database migrations are ordered, immutable and forward-only.
-- Never edit, reorder or reuse a migration that may have been applied to a shared environment.
+- Migrations are ordered, immutable and forward-only.
+- Never edit, reorder or reuse a migration that may have reached a shared environment.
 - Corrections require a new migration.
-- Breaking changes use expand/migrate/contract.
-- Schema changes must remain compatible with rolling application deployments.
-- Long-running backfills are separated from short schema migrations.
-- Production migration execution is an explicit deployment step or dedicated controlled job, not an uncontrolled race between application instances.
-- Clean-install, upgrade-path, drift and compatibility tests are required.
-- Destructive schema changes require a reviewed compatibility plan.
-- Database patches must not hide application business logic.
+- Breaking changes use expand/migrate/contract and support rolling deployments.
+- Long backfills are separate from short schema migrations.
+- Production migration is an explicit controlled deployment step or job.
+- Clean install, upgrade, drift and compatibility tests are mandatory.
+- Destructive changes require a reviewed compatibility and recovery plan.
 
 ## Testing and coverage
 
-- Test-driven development using red, green and refactor is the default workflow for production behavior.
-- Production Rust code must maintain 100% line and branch coverage.
-- Coverage is mandatory but never replaces meaningful assertions, negative cases, boundary cases, property tests, contract tests, integration tests and end-to-end verification.
-- Every business rule, application operation, adapter behavior, serializer, error branch and migration path requires appropriate tests.
-- Generated code or genuinely unreachable defensive paths may be excluded only through an explicit, reviewed and narrowly scoped policy.
-- Critical commercial and lifecycle rules should use mutation testing or equivalent evidence when practical.
-- Tests and fixtures must be deterministic, isolated and free from timing, ordering or external-environment assumptions.
-- A change is not complete if it adds production behavior without corresponding tests.
+- TDD red/green/refactor is the default for production behavior.
+- Production Rust maintains 100% line and branch coverage.
+- Coverage never replaces meaningful negative, boundary, property, contract, integration and end-to-end tests.
+- Every rule, operation, adapter, serializer, error branch and migration path has appropriate tests.
+- Exclusions are narrow, explicit, reviewed and recorded.
+- Critical commercial and lifecycle rules use mutation-oriented evidence when practical.
+- Tests and fixtures are deterministic and isolated.
 
-## Self-provisioned test environments
+## Self-provisioned environments
 
-- CI must provision every database, cache, object store, broker or other external dependency required by tests.
-- Tests must not rely on manually created or shared long-lived test infrastructure.
-- Prefer Rust Testcontainers for test-owned adapter and contract-test dependencies.
-- Prefer Docker Compose for multi-service system and end-to-end environments that developers must also run locally.
-- Use GitHub Actions service containers only for simple job-wide dependencies when they reduce complexity.
-- Pin container image versions and upgrade them deliberately.
-- Use explicit health checks or protocol readiness probes; fixed sleeps are forbidden.
-- Isolate schemas, databases, buckets, namespaces, queues and credentials per job or test scope.
-- Apply real migrations before persistence integration suites.
-- Collect service logs and useful diagnostics automatically on failure.
-- Ensure local and GitHub Actions execution use the same versioned environment definitions.
-- Tear down all external resources automatically after the suite.
+- CI provisions every database, cache, storage, authorization service, broker or external dependency required by tests.
+- No manually prepared or shared long-lived test infrastructure.
+- Prefer Rust Testcontainers for test-owned dependencies and Docker Compose for multi-service/E2E environments.
+- GitHub service containers are for simple job-wide dependencies only.
+- Pin container versions; `latest` is forbidden.
+- Use protocol readiness probes, never fixed sleeps.
+- Isolate databases, schemas, buckets, namespaces, queues, authorization stores and credentials per test/job.
+- Run real migrations before integration tests.
+- Collect sanitized logs and diagnostics on failure and tear resources down automatically.
+- Local and GitHub Actions executions use the same versioned definitions.
 
-## Documentation and executable examples
+## Documentation and examples
 
-- Production modules, traits, structs, enums, functions, methods and non-obvious fields require clear and current rustdoc.
-- Documentation must explain purpose, invariants, inputs, outputs, errors, side effects, transaction behavior, idempotency, concurrency assumptions and security implications where relevant.
-- Missing required documentation must fail CI.
-- Every external DTO and serialized contract requires canonical, realistic and human-readable examples.
-- Prefer pretty-printed versioned fixture files for JSON payloads and equivalent readable formats for other serializations.
-- Reuse canonical fixtures in serialization/deserialization tests, adapter tests, rustdoc, OpenAPI or other contract documentation and compatibility tests where practical.
-- CI must parse and validate fixture files so examples cannot silently become stale.
-- Round-trip tests should deserialize canonical input, exercise the relevant behavior, serialize output and validate semantic content.
-- Snapshot or golden tests may support readability but must not replace explicit assertions for important behavior.
-- Contract and behavior changes require documentation and fixture updates in the same change.
+- Production modules, traits, structs, enums, functions, methods and non-obvious fields require clear current rustdoc.
+- Document purpose, invariants, input, output, errors, side effects, transactions, idempotency, concurrency and security implications.
+- Missing required documentation fails CI.
+- Every external DTO/contract has canonical, realistic, pretty-printed, human-readable fixtures.
+- Reuse fixtures in serialization, adapter, rustdoc, OpenAPI and compatibility tests.
+- CI parses and validates every fixture; contract changes update docs and fixtures in the same change.
+
+## Reliability, errors and diagnostics
+
+- No swallowed errors, panic-based control flow or opaque generic failures in production paths.
+- Errors are typed, contextual, causally chained and consistently mapped at boundaries.
+- Structured logs, traces and metrics use correlation, causation and idempotency identifiers where relevant.
+- Secrets, credentials, personal data and sensitive payloads are redacted by construction.
+- Retry, timeout, circuit breaker, backpressure and degraded behavior are explicit and tested.
+- Qualifying CI/runtime failures produce sanitized reproducibility bundles.
+- Automatic GitHub issues require a stable fingerprint, exact reproduction, fixture, error chain, affected commit/release, owner, impact, acceptance criteria and verification evidence.
+- Identical failures update one issue rather than creating duplicates.
+
+## Performance engineering
+
+- Performance claims require representative benchmarks and profiles.
+- Critical operations have approved p50/p95/p99 latency, throughput, CPU, memory, allocation, I/O and database budgets.
+- Benchmark before optimization, profile the bottleneck, change deliberately and compare against the baseline.
+- Regression gates use controlled baselines and noise tolerance.
+- N+1 queries, unbounded scans, hidden queries in loops and in-memory pagination of unbounded data are forbidden.
+- Critical queries require bounded result shape, query-count assertions and plan evidence.
+- Indexes are justified against workload and write cost.
+- Transactions are minimal and observable; pools and timeouts are load-tested.
+- Helm requests/limits derive from measurements, load, soak and saturation tests.
+
+## Configuration, data and operations
+
+- Configuration is typed, validated before traffic, auditable and example-backed.
+- Secrets are injected and rotated; they never appear in committed files, logs or fixtures.
+- Feature flags require owner, expiry, removal plan and supported-combination validation.
+- Every data class has owner, classification, retention and allowed residency.
+- Tenant offboarding covers primary data, derived data, caches, objects, logs and backups with verifiable erasure semantics.
+- Critical services define SLI/SLO, alerts, runbooks, RPO/RTO, backup and automated restore tests.
+- Rollback and disaster-recovery procedures must remain compatible with schema evolution.
 
 ## Engineering rules
 
-- Keep `uc-domain` free from HTTP, database, messaging and framework dependencies.
-- Express business invariants through types and domain methods.
-- Do not use floating point for money.
-- Do not introduce a dependency without documenting its role and maintenance implications.
-- Prefer a small vertical slice over broad scaffolding.
+- Keep `uc-domain` free from HTTP, database, messaging, identity and framework dependencies.
+- Express invariants through types and domain methods; never use floating point for money.
+- Document dependency purpose and maintenance implications.
 - Every bug fix requires a regression test.
-- Public contracts and domain events must be versioned before external adoption.
 - Avoid `unwrap`, `expect` and panics in production paths.
-- Unsafe Rust is forbidden unless a dedicated ADR explicitly changes the policy.
+- Unsafe Rust is forbidden without an accepted ADR.
 - Avoid duplicate modules, abandoned scaffolding, parallel implementations and dead compatibility layers.
-- Remove obsolete code and files in the same change that replaces them, unless a documented migration window requires coexistence.
+- Remove obsolete code/files in the same change unless a documented migration window requires coexistence.
 
 ## GitHub governance
 
-- `governance/github-manifest.json` is the source of truth for repository labels, milestones, managed issues and GitHub Project #4.
-- Do not create persistent labels, milestones, project fields or project options manually.
-- Every managed issue must be declared in the manifest.
-- Undefined GitHub metadata is removed by the governance synchronization workflow in confirmed apply mode.
-- Manual metadata changes may be overwritten.
-- No feature implementation may resume before the Project Ready gate in issue #19 is approved.
+- `governance/github-manifest.json` is the source of truth for labels, milestones, managed issues and Project #4.
+- Do not create persistent GitHub metadata manually.
+- Every managed issue is declared in the manifest; undefined metadata is removed in confirmed apply mode.
+- No feature implementation resumes before issue #19 is approved.
 
-## Release and packaging governance
+## Release and packaging
 
-- Release Please is the only authority that calculates and writes repository release versions.
-- Cargo packages, application binaries, container images, Helm charts and GitHub Releases use one coordinated semantic version.
-- Do not manually edit release versions except while bootstrapping or through an approved recovery procedure.
-- Publishing workflows derive versions from the immutable Git tag created by Release Please.
-- Existing tags and immutable artifacts must never be overwritten.
-- Partial publication failures are retried from the same tag; unrecoverable inconsistencies require a new patch release.
-- Changes to release topology, independent component versions, registries, signing or promotion require an RFC or ADR according to governance policy.
+- Release Please is the only authority that calculates and writes versions.
+- Cargo packages, binaries, container images, Helm charts and GitHub Releases use one coordinated SemVer.
+- Publishing derives from the immutable Release Please tag; existing tags/artifacts are never overwritten.
+- Release topology, registries, signing or independent versions require an ADR/RFC.
 
 ## Validation
 
@@ -164,8 +195,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-When applicable, also run rustdoc linting, 100% line/branch coverage, context validation, architecture tests, adapter contract suites, fixture round-trip tests, self-provisioned integration environments, migration clean-install tests and supported upgrade-path tests.
+Also run all applicable rustdoc, coverage, context, architecture, compatibility, authorization, adapter contract, fixture, migration, integration, failure-path, security and performance gates.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, testing policy, test-environment orchestration, documentation policy, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence, cache, storage, identity, authorization, consistency, event delivery, contracts, security, deployment, release, testing, documentation, operations, performance, migrations or the agentic operating model. Substantial or high-cost changes require an RFC before implementation.

@@ -1,77 +1,53 @@
-# AGENTS.md
+# Agent Instructions
 
-## Purpose
+## Mission
 
-This repository contains both the UC Rust product and the engineering golden path used to build it.
+Evolve UC Rust as both a proprietary Unified Commerce platform and a high-quality Rust golden path.
 
-Agents must preserve domain boundaries, repository context and project governance. They must not optimize locally at the expense of the target architecture or accepted decisions.
+## Required reading
 
-## Required context
+Before changing architecture or domain behaviour, read:
 
-Before changing the repository, read in this order:
-
-1. `PROJECT_CHARTER.md`, when present;
-2. `CONTEXT.md`;
-3. `ARCHITECTURE.md` and relevant files under `docs/architecture/`;
-4. accepted ADRs and RFCs relevant to the work;
-5. the governing GitHub issue and its dependencies;
-6. this file;
-7. `governance/github-manifest.json` for backlog and metadata changes.
-
-When sources conflict, accepted ADRs and RFCs override descriptive documentation. The Project Ready gate controls whether implementation may resume.
-
-## Implementation gate
-
-Feature implementation is blocked until issue #19 records an approved Project Ready review.
-
-Until that gate is approved, permitted work is limited to project definition, architecture, agentic operating model, repository memory, governance, security, quality gates and roadmap planning.
-
-## GitHub governance
-
-Repository labels, milestones, managed issue metadata and Project #4 are declarative.
-
-- `governance/github-manifest.json` is the source of truth.
-- Do not create permanent labels, milestones or Project fields only through the UI.
-- Every managed issue must be represented in the manifest.
-- Release is represented by milestone, not by a release label.
-- Workflow state and size are Project fields, not repository labels.
-- Undefined metadata is removed by the governance apply workflow.
-- Destructive synchronization must use `.github/workflows/sync-governance.yml` apply mode and its explicit confirmation gate.
-
-See `docs/governance/github-metadata.md`.
+1. `CONTEXT.md`
+2. relevant files under `docs/adr/`
+3. the affected crate public API and tests
+4. `governance/github-manifest.json` when changing issues, labels, milestones or Project metadata
+5. `docs/governance/release-packaging.md` when changing versions, packaging, publishing or deployment artifacts
 
 ## Engineering rules
 
-- Start from a GitHub issue with clear acceptance criteria.
-- Keep changes within the issue scope.
 - Keep `uc-domain` free from HTTP, database, messaging and framework dependencies.
 - Express business invariants through types and domain methods.
 - Do not use floating point for money.
-- Do not introduce a dependency without documenting ownership, operational impact, license and supply-chain risk.
-- Prefer a small vertical slice over broad scaffolding once implementation is unblocked.
+- Do not introduce a dependency without documenting its role and maintenance implications.
+- Prefer a small vertical slice over broad scaffolding.
 - Every bug fix requires a regression test.
 - Public contracts and domain events must be versioned before external adoption.
 - Avoid `unwrap`, `expect` and panics in production paths.
 - Unsafe Rust is forbidden unless a dedicated ADR explicitly changes the policy.
-- Do not silently change public contracts, domain terminology or bounded-context ownership.
-- Do not commit credentials, secrets, tokens or production data.
 
-## Agent handoff
+## GitHub governance
 
-Every handoff must state:
+- `governance/github-manifest.json` is the source of truth for repository labels, milestones, managed issues and GitHub Project #4.
+- Do not create persistent labels, milestones, project fields or project options manually.
+- Every managed issue must be declared in the manifest.
+- Undefined GitHub metadata is removed by the governance synchronization workflow in confirmed apply mode.
+- Manual metadata changes may be overwritten.
+- No feature implementation may resume before the Project Ready gate in issue #19 is approved.
 
-- governing issue;
-- files changed;
-- evidence and checks performed;
-- decisions proposed or accepted;
-- unresolved risks and assumptions;
-- exact next action.
+## Release and packaging governance
 
-Partial work must remain explicit. Temporary notes are not accepted architecture until consolidated into the appropriate durable document.
+- Release Please is the only authority that calculates and writes repository release versions.
+- Cargo packages, application binaries, container images, Helm charts and GitHub Releases use one coordinated semantic version.
+- Do not manually edit release versions except while bootstrapping or through an approved recovery procedure.
+- Publishing workflows derive versions from the immutable Git tag created by Release Please.
+- Existing tags and immutable artifacts must never be overwritten.
+- Partial publication failures are retried from the same tag; unrecoverable inconsistencies require a new patch release.
+- Changes to release topology, independent component versions, registries, signing or promotion require an RFC or ADR according to governance policy.
 
 ## Validation
 
-For Rust code:
+Run before proposing changes:
 
 ```bash
 cargo fmt --all -- --check
@@ -79,14 +55,6 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-For governance changes:
-
-```bash
-python3 scripts/sync_github_governance.py --mode validate
-```
-
-A pull request must link its issue and include validation evidence.
-
 ## Architecture changes
 
-Create or update an ADR or RFC when changing boundaries, persistence strategy, event delivery, public contracts, security model or deployment topology.
+Create or update an ADR when changing boundaries, persistence strategy, event delivery, public contracts, security model or deployment topology.

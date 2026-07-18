@@ -1,6 +1,6 @@
 # ADR-0031 — Market Evidence Disposition and Scope Control
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #41
 - Source assessment: `.context/research/2025-market-guide-impact-assessment.md`

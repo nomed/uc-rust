@@ -8,6 +8,7 @@ members = [
     "crates/uc-sync",
     "crates/uc-sync-sqlite",
     "crates/uc-economics",
+    "crates/uc-sync-economics",
     "apps/uc-server",
 ]
 resolver = "2"

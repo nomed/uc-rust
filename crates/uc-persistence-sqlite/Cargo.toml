@@ -1,0 +1,17 @@
+[package]
+name = "uc-persistence-sqlite"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }
+uc-application = { path = "../uc-application" }
+uc-domain = { path = "../uc-domain" }
+
+[dev-dependencies]
+uc-persistence-contract = { path = "../uc-persistence-contract" }
+
+[lints]
+workspace = true

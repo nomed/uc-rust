@@ -19,12 +19,15 @@ records:
   decisions:
     path: .context/decisions
     id_pattern: "ADR-{number:04d}"
-    statuses: [proposed, accepted, rejected, superseded, deprecated]
+    statuses: [Draft, Proposed, Accepted, Deprecated, Superseded, Rejected, Withdrawn]
     immutable_after_acceptance: true
+    migration_registry: governance/record-migration-registry.yaml
   rfcs:
     path: .context/rfcs
     id_pattern: "RFC-{number:04d}"
-    statuses: [draft, proposed, accepted, rejected, postponed, superseded]
+    statuses: [Draft, Proposed, Accepted, Deprecated, Superseded, Rejected, Withdrawn]
+    immutable_after_acceptance: true
+    migration_registry: governance/record-migration-registry.yaml
     required_for:
       - substantial_domain_change
       - public_contract_change

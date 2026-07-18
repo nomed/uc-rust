@@ -1,6 +1,6 @@
 # ADR-0027 — Scheduled, Background and Worker Execution Through Operations
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #50
 - Parent epic: #46

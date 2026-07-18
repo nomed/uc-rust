@@ -1,10 +1,10 @@
 # UC Rust Target Architecture
 
-- Status: Draft for approval
+- Status: Accepted
 - Governing issue: #12
-- Related decisions: ADR-0002, ADR-0005 through ADR-0016
+- Related decisions: ADR-0002, ADR-0005 through ADR-0016, ADR-0021, ADR-0024, ADR-0025, ADR-0026, ADR-0027, ADR-0028, ADR-0029
 - Normative source: UC-BoK
-- Last updated: 2026-07-18
+- Accepted: 2026-07-19
 
 ## Architectural intent
 
@@ -85,6 +85,20 @@ Allowed offline classifications:
 - `online-required`
 - `forbidden-offline`
 
+## Governed Operation and realization model
+
+Business capability is expressed through the accepted model:
+
+```text
+Capability
+  -> canonical Operation
+    -> governed Capability Realization
+```
+
+The Operation owns canonical semantic meaning and is invoked identically by REST, gRPC, CLI, workers, schedulers and other delivery adapters. A realization may be native, delegated, composed, pipeline or hybrid under ADR-0024. Consumers never invoke provider-specific contracts directly.
+
+Realization selection occurs only after semantic, security, authority, profile, offline and quality eligibility. Economic preference may select only among already eligible realizations.
+
 ## Data categories
 
 ### Cache
@@ -153,6 +167,16 @@ Domain/application crates never depend on SQL, Redis, S3, SpiceDB or vendor SDK 
 
 Database migrations are provider-specific, ordered, immutable and forward-only. Central and edge rolling compatibility uses expand/migrate/contract.
 
+## Runtime lifecycle and composition
+
+Each executable profile has an explicit composition root and immutable revisioned configuration. Lifecycle, readiness, degradation, quiesce, drain and graceful shutdown follow ADR-0025. No Operation can access mutable global state, environment variables or an unrestricted service locator.
+
+Store-edge readiness is evaluated against its approved local Operation set. WAN loss alone does not make the edge unready when its offline-authorized subset remains operable.
+
+## Scheduled and background execution
+
+Schedules, queues, event consumers and workers invoke the same canonical Operations under ADR-0027. They may own trigger decoding, lease handling, checkpointing and work disposition, but never private business procedures, provider selection or repository access.
+
 ## Edge fleet control plane
 
 The central control plane owns desired state; each edge owns local reconciliation and reports actual state.
@@ -180,6 +204,8 @@ Retail-operational health includes ability to sell, price/promotion validity, pa
 
 `offline-operational` is a valid healthy retail state even though central connectivity is absent.
 
+Every Operation outcome emits provider-neutral evidence correlating invocation, Operation, realization, component health, failure and economic attribution under ADR-0026.
+
 ## AI architecture
 
 AI is an optional capability layer over governed application contracts and evidence. Models and providers remain replaceable. AI does not bypass authorization, domain invariants or audit. Critical decisions require explicit human-in-the-loop or bounded autonomous policy, evaluation datasets, fallback and performance/error budgets.
@@ -195,7 +221,7 @@ Retailer/vendor extensions integrate through:
 - capability registration and permission declarations;
 - compatibility and performance tests.
 
-Extensions cannot link directly to internal persistence or bypass canonical application operations.
+Extensions cannot link directly to internal persistence or bypass canonical application operations. UC Rust 1.0 uses manifest-governed registration with compile-time composition as the default. Arbitrary dynamic native-library loading and a stable binary plugin ABI are deferred beyond 1.0 under ADR-0029.
 
 ## Initial bounded capabilities
 

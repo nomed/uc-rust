@@ -1,6 +1,6 @@
 # ADR-0030 — UC-BoK Reference Implementation and Traceability Contract
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #38
 - Related specification issue: nomed/uc-bok#9

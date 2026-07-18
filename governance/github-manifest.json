@@ -101,6 +101,7 @@
     "38":{"labels":["priority:P0","type:governance","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Architecture","Release":"M0","Size":"L"}},
     "39":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"XL"}},
     "40":{"labels":["priority:P0","type:architecture","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Delivery","Release":"M0","Size":"XL"}},
-    "41":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}}
+    "41":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}},
+    "42":{"labels":["priority:P0","type:foundation","area:golden-path"],"milestone":"M0 — Project Ready","project":{"Status":"Ready","Priority":"P0","Type":"Foundation","Area":"Golden Path","Release":"M0","Size":"XL"}}
   }
 }

@@ -1,0 +1,17 @@
+[package]
+name = "uc-persistence-postgres"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+postgres = "0.19"
+uc-application = { path = "../uc-application" }
+uc-domain = { path = "../uc-domain" }
+
+[dev-dependencies]
+uc-persistence-contract = { path = "../uc-persistence-contract" }
+
+[lints]
+workspace = true

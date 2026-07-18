@@ -1,6 +1,6 @@
 # ADR-0026 — Observability, Health, Errors and Economic Correlation
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #49
 - Parent epic: #46

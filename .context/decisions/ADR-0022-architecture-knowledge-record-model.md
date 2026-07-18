@@ -4,7 +4,7 @@
 - Date: 2026-07-18
 - Governing issue: #56
 - Parent epic: #55
-- Related: ADR-0021, RFC-0001
+- Related: #62, ADR-0021, RFC-0001
 
 ## Context
 
@@ -47,6 +47,8 @@ Type-specific bodies extend this envelope but may not redefine its semantics.
 
 Records express governed intent or knowledge. Code, tests, benchmarks, traces, reports, deployments and operational observations are evidence. Evidence may support lifecycle transitions but does not silently mutate a record or become normative through release bundling.
 
+Normatively referenced evidence must be reproducibly identifiable through a canonical evidence identifier or a stable locator with immutable revision/digest and observation timestamp. Anonymous or mutable evidence references are insufficient.
+
 ### 4. Orthogonal state dimensions
 
 Record lifecycle is distinct from epistemic confidence, implementation conformance, verification freshness and release inclusion. An accepted record may be unimplemented, partially conforming or excluded from a release.
@@ -54,6 +56,8 @@ Record lifecycle is distinct from epistemic confidence, implementation conforman
 ### 5. Typed relationships
 
 Normative records use a controlled directional relationship vocabulary. Generic `related_to` links are insufficient for architecture traceability.
+
+The authority owning the relation source owns the normative assertion. Incoming relations do not imply endorsement by the target authority. Inferred projection edges remain non-normative until accepted by the source authority.
 
 ### 6. Canonical human-readable source
 
@@ -68,6 +72,8 @@ The authoritative representation is Markdown with machine-validatable YAML front
 
 Canonical identifiers use `<namespace>:<local-id>`. The namespace identifies the authoritative repository or registry. Local identifiers are immutable; titles, aliases and file paths are not identity. Cross-repository references preserve the owning identifier. Yukh indexes and reconciles identifiers but does not become their authority.
 
+Artifacts referenced normatively use an authority-qualified locator plus immutable revision or digest. Runtime realizations use environment-scoped identifiers and preserve the artifact revision and governed responsibility references they claim to realize.
+
 ### 8. Taxonomy extension rule
 
 A new record family requires all of:
@@ -78,6 +84,30 @@ A new record family requires all of:
 4. an ADR accepting the extension;
 5. schema and migration impact defined.
 
+### 9. Architecture meta-model
+
+The 1.0 model consists of the following distinct entities:
+
+- **Concept** — meaning owned by an external authoritative knowledge namespace;
+- **Normative Record** — governed UC Rust intent, constraint, decision or accepted knowledge;
+- **Relation** — typed directional assertion whose authority follows its source;
+- **Evidence** — reproducibly identifiable observation supporting a claim without changing normative meaning;
+- **Artifact** — produced implementation or operational object;
+- **Projection** — derived index, graph, reconciliation, query or visualization representation;
+- **Runtime Realization** — deployable or executing manifestation of governed responsibilities;
+- **Namespace Authority** — owner of canonical identifiers and meaning within a namespace.
+
+The normative elaboration, identity policies, allowed dependencies, forbidden conflations and canonical traces are defined in `docs/architecture/architecture-meta-model.md`.
+
+The meta-model imposes these additional invariants:
+
+1. every normative statement has exactly one authority;
+2. concepts, records, evidence, artifacts, projections and runtime realizations remain separate entities;
+3. projection or runtime state cannot mutate a record;
+4. deployment topology cannot redefine capability or runtime-responsibility identity;
+5. unresolved external references remain explicit findings rather than local copies;
+6. no Deployment Record family is introduced for 1.0; deployments remain artifacts and evidence unless the taxonomy extension rule is later satisfied.
+
 ## Consequences
 
 ### Positive
@@ -87,6 +117,7 @@ A new record family requires all of:
 - Yukh can project state and relationships without becoming source of truth.
 - Economics and quality attributes become first-class constraints.
 - Impact, coverage, freshness and release-readiness queries become possible.
+- Dependent lifecycle, relationship and schema work can use a stable primitive entity model.
 
 ### Costs and risks
 
@@ -94,6 +125,7 @@ A new record family requires all of:
 - Schemas and migration rules must be maintained.
 - Over-modeling remains possible and is controlled by the extension rule.
 - Existing artifacts need incremental migration.
+- External identifiers and immutable artifact/evidence locators require explicit resolution behavior.
 
 ## Rejected alternatives
 
@@ -103,16 +135,18 @@ A new record family requires all of:
 - **Yukh as record authority:** reverses the intended relationship.
 - **One universal record body:** optional-field sprawl and weak ownership.
 - **Technology Record in the 1.0 baseline:** currently lacks two concrete normative uses and unique invariants.
+- **Deployment Record in the 1.0 baseline:** deployment identity and observations can be represented as Artifact, Runtime Realization and Evidence without a new normative family.
 
 ## Validation evidence produced
 
+- `docs/architecture/architecture-meta-model.md`;
 - `docs/knowledge/common-record-envelope.md`;
 - `docs/knowledge/record-taxonomy.md`;
 - `docs/knowledge/records/CR-0001-basket-capability.md`;
 - `docs/knowledge/records/RRR-0001-operation-invocation.md`;
 - `docs/knowledge/record-model-validation.md`.
 
-The examples validate the distinction between capability semantics and reusable runtime invocation semantics.
+The examples validate the distinction between capability semantics and reusable runtime invocation semantics. The architecture meta-model resolves the primitive entity boundaries required by #62.
 
 ## Required evidence before acceptance
 
@@ -123,4 +157,4 @@ The examples validate the distinction between capability semantics and reusable 
 - UC-BoK, Yukh and EbD responsibility/identifier boundaries confirmed;
 - accountable human review of CR-0001 and RRR-0001.
 
-Human acceptance remains mandatory under `.context/manifest.yaml`.
+Human acceptance remains mandatory under `.context/manifest.yaml`. Completion of #62 does not itself accept this ADR.

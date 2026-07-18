@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "realization_id": "rgk-commercial-calculation-eu-v1",
+  "provider_id": "retex-iconic-rgk",
+  "capability_id": "uc-rust:CR-0002",
+  "kind": "delegated",
+  "status": "proposed",
+  "operations": [
+    {
+      "id": "calculate-commercial-outcome",
+      "semantic_versions": ["1.0"],
+      "invocation_modes": ["sync"],
+      "unsupported_contexts": ["store-edge-offline"]
+    }
+  ],
+  "execution": {
+    "form": "remote-service",
+    "transport": "grpc",
+    "profiles": ["central", "store-edge-online"],
+    "endpoint_reference": "secret://providers/rgk/endpoint",
+    "residency": ["EU"]
+  },
+  "authority": {
+    "role": "calculator",
+    "source_data_authority": "declared upstream product/customer/promotion authorities",
+    "outcome_authority": "rgk realization for calculated commercial outcome",
+    "outcome_state": "provisional",
+    "replacement_policy": "replaceable",
+    "evidence_type": "canonical calculation result plus explanation references"
+  },
+  "guarantees": {
+    "idempotency": "invocation-key",
+    "idempotency_retention_seconds": 86400,
+    "deadline_ms": 250,
+    "cancellation": "best-effort",
+    "retry": "safe-before-ack",
+    "offline": "unavailable",
+    "indeterminate_outcome": "reconcile",
+    "fallback_realization_ids": ["native-commercial-calculation-v1"]
+  },
+  "compatibility": {
+    "provider_contract": "rgk-engine-v1",
+    "adapter_revision": "1.0.0",
+    "binding_policy_revision": "1.0.0",
+    "min_runtime_version": "0.1.0",
+    "rollout_strategy": "tenant",
+    "rollback_supported": true
+  },
+  "quality": {
+    "latency_budget_ms": 200,
+    "availability_target": 99.9,
+    "concurrency_limit": 64,
+    "circuit_breaker_policy": "commercial-calculation-default-v1",
+    "bulkhead": "provider-tenant"
+  },
+  "economics": {
+    "attribution_unit": "commercial-calculation",
+    "cost_model_revision": "ER-0001",
+    "max_cost_per_unit": 0.01,
+    "currency": "EUR"
+  },
+  "security": {
+    "tenant_isolation": "required",
+    "data_minimization_profile": "commercial-calculation-v1",
+    "authentication": "mutual-tls-plus-workload-identity",
+    "authorization": "operation-and-tenant-scoped",
+    "audit_profile": "delegated-commercial-calculation-v1",
+    "sensitive_fields": ["customer.identifiers"]
+  },
+  "evidence": {
+    "conformance_suite": "commercial-calculation-v1",
+    "fixtures_revision": "1.0.0",
+    "observability_profile": "capability-realization-v1",
+    "security_assessment": "pending-provider-assessment",
+    "operational_runbook": "pending-provider-runbook"
+  }
+}

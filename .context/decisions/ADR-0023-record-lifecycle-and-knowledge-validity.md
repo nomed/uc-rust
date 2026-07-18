@@ -1,11 +1,13 @@
 # ADR-0023 — Record Lifecycle and Knowledge Validity
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-18
+- Accepted at: 2026-07-18
+- Accepted by: project owner
+- Acceptance authority: explicit human instruction recorded in the governing GitHub workflow
 - Governing issue: #57
 - Parent epic: #55
 - Related: ADR-0022, #63
-- Review readiness: Ready for accountable human acceptance
 
 ## Context
 
@@ -113,16 +115,8 @@ Loss of accountable ownership immediately makes a record review-due. If ownershi
 - canonical CR-0001 and RRR-0001 examples;
 - typed supersession and waiver relation rules from #64.
 
-## Acceptance readiness
+## Acceptance record
 
-The technical prerequisites for acceptance are complete:
+The project owner explicitly accepted ADR-0023 on 2026-07-18. This transition is attributable human approval and does not derive from CI, issue closure or absence of objection.
 
-- [x] deterministic lifecycle and transition rules;
-- [x] explicit transition authorities;
-- [x] lifecycle separated from implementation, verification and release dimensions;
-- [x] freshness calculation and review triggers defined;
-- [x] waiver policy defined;
-- [x] deprecation and supersession handling defined;
-- [x] machine-detectable invariants specified.
-
-The remaining action is an explicit attributable human acceptance decision.
+Future normative changes to this decision require a governed amendment or a superseding ADR. Editorial corrections may preserve the content version when they do not alter meaning.

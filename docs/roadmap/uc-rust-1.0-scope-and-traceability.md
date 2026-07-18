@@ -1,10 +1,11 @@
 # UC Rust 1.0 scope, release and traceability baseline
 
-- Status: Proposed for accountable review
+- Status: Accepted
 - Governing issue: #53
 - Parent blueprint: #45
 - Knowledge gate: #61 (Approved)
 - Runtime implementation gate: #54
+- Accepted: 2026-07-19
 
 ## Purpose
 
@@ -136,13 +137,14 @@ A material change requires:
 
 Emergency or exploratory work may use a bounded waiver, but the waiver must state owner, scope, rationale, expiry and required reconciliation evidence.
 
-## Acceptance gaps
+## Acceptance basis
 
-This baseline is structurally complete but cannot be marked Accepted until the parent evidence is dispositioned:
+This baseline is Accepted because its governing dependencies have attributable accepted dispositions:
 
 - #11 project charter accepted;
-- #12 target architecture accepted;
-- #38 cross-repository UC-BoK operating contract and stable mappings available;
-- #41 market evidence dispositions reflected in charter and capability map.
+- #12 target architecture accepted and aligned with the Operation/runtime/realization model;
+- #38 UC-BoK reference implementation and traceability contract accepted through ADR-0030;
+- #41 market evidence dispositions accepted through ADR-0031;
+- #68 Governed Capability Realization accepted through ADR-0024.
 
-Until then, this document is the proposed governed baseline and #53 remains open for accountable review.
+Acceptance approves the governed 1.0 planning baseline. It does not claim that M1–M8 executable evidence already exists. Those proofs remain mandatory at their respective release gates.

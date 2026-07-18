@@ -23,6 +23,8 @@ validate:
     python3 scripts/validate_repository.py
 
 coverage:
-    cargo llvm-cov nextest --workspace --all-features --branch --fail-under-lines 100 --fail-under-branches 100
+    mkdir -p target/coverage
+    cargo llvm-cov nextest --workspace --all-features --branch --lcov --output-path target/coverage/lcov.info
+    python3 scripts/check_coverage.py target/coverage/lcov.info
 
 check: fmt lint test docs validate coverage

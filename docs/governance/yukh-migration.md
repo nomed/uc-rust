@@ -9,12 +9,23 @@ The migration is in **shadow mode**:
 - UC Rust embedded scripts remain authoritative for write operations.
 - Yukh reads equivalent fixtures and produces comparison reports.
 - Yukh must not mutate UC Rust during shadow mode.
+- Generic governance capabilities are implemented in Yukh, not duplicated further in UC Rust.
 
 ## Work streams
 
 ### Stream A — Governance migration
 
-Tracked by issue #20 and the corresponding Yukh compatibility epic.
+Tracked by UC Rust issue #20 and the Yukh UC Rust compatibility epic.
+
+Deliverables:
+
+- capture the UC Rust compatibility contract;
+- deterministic read-only drift reporting;
+- repository and Project v2 adapters;
+- parent/sub-issue and dependency adapters;
+- sandbox reconciliation and idempotency evidence;
+- zero unexplained shadow drift;
+- pinned Yukh integration and rollback evidence.
 
 ### Stream B — Product implementation
 

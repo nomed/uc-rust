@@ -3,6 +3,7 @@
 - Status: Draft
 - Governing issue: #56
 - Governing decision: ADR-0022
+- Relationship model: `docs/architecture/relationship-model.md`
 
 ## Purpose
 
@@ -35,7 +36,7 @@ The authoritative source representation is Markdown with machine-validatable YAM
 | `updated_at` | Date of the latest semantic update. |
 | `scope` | Concern for which this record is authoritative. |
 | `provenance` | Originating issue, session, source or external authority. |
-| `relations` | Typed, directional references. |
+| `relations` | Typed, directional references governed by the controlled relationship model. |
 | `review` | Required review ownership and current disposition. |
 
 ## Conditionally required fields
@@ -43,7 +44,7 @@ The authoritative source representation is Markdown with machine-validatable YAM
 | Field | Required when |
 |---|---|
 | `non_goals` | The record could otherwise be interpreted too broadly. |
-| `evidence` | Status is `Implemented`, `Verified`, `Deprecated` or `Superseded`. |
+| `evidence` | Evidence is normatively referenced by the record. |
 | `review.reviewed_at` | A review disposition exists. |
 | `review.next_review_at` | Freshness is time-sensitive. |
 | `supersedes` | This record replaces another accepted record. |
@@ -95,7 +96,18 @@ Initial source kinds are `issue`, `session`, `uc-bok`, `external-standard`, `inc
 
 ## Relations
 
-Each relation contains `type`, `target`, optional `scope`, temporal validity, provenance and confidence for inferred non-normative edges. Normative edges may not depend solely on inferred confidence. Final relation types are governed by the relationship-model work item.
+Each relation contains:
+
+- required `type`;
+- required canonical `target` identifier;
+- optional `scope`;
+- optional `valid_from` and `valid_until`;
+- optional provenance;
+- `confidence` only for inferred, non-normative projection edges.
+
+Normative relations are written only in the authoritative source record. Hand-maintained inverse edges are forbidden except for lifecycle metadata explicitly required by the lifecycle model. The accepted vocabulary, source/target matrix, direction, temporal rules and validator invariants are defined in `docs/architecture/relationship-model.md`.
+
+Generic `related_to`, `links`, `see_also` and equivalent relation types are invalid.
 
 ## Evidence
 
@@ -114,4 +126,6 @@ A review block declares required reviewer roles, current reviewers, disposition,
 - `owner` does not mean author;
 - `evidence` does not imply verification automatically;
 - `release` does not imply lifecycle acceptance;
-- generic `links` do not replace typed relations.
+- generic `links` do not replace typed relations;
+- inverse relation names do not replace canonical relation direction;
+- a relation does not prove conformance, deployment or acceptance.

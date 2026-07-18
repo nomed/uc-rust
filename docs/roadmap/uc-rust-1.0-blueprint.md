@@ -1,9 +1,10 @@
 # UC Rust — Architecture and Delivery Blueprint to 1.0
 
-- Status: Draft for architecture review
+- Status: Proposed for accountable review
 - Date: 2026-07-18
-- Governing epic: to be assigned
-- Normative sources: UC-BoK and Economic by Design
+- Governing epic: #45
+- Planning baseline: `docs/roadmap/uc-rust-1.0-scope-and-traceability.md`
+- Normative sources: UC-BoK and Economics by Design
 
 ## 1.0 product statement
 
@@ -25,6 +26,8 @@ Product/catalog reference
  -> fleet-managed deployment
  -> operation-level economic evidence
 ```
+
+The governed capability ownership, release allocation, profile/offline classes, authority, quality and economic evidence are defined in `uc-rust-1.0-scope-and-traceability.md`. Capabilities absent from that baseline are not implicit 1.0 requirements.
 
 ## Release train
 
@@ -237,5 +240,8 @@ The roadmap is a governed baseline, not an immutable promise. Material changes r
 - impact assessment on 1.0 scope;
 - ADR/RFC update where architectural;
 - UC-BoK and EbD impact disposition;
-- Project roadmap and dependency update;
+- project roadmap, matrix and dependency update;
+- named owner and measurable exit evidence;
 - explicit acceptance rather than silent scope drift.
+
+The detailed change-control contract, deferred capabilities and compatibility expectations are normative in `uc-rust-1.0-scope-and-traceability.md`.

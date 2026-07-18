@@ -24,15 +24,48 @@ Also read:
 
 When sources conflict, follow the precedence declared in `.context/manifest.yaml`. Do not guess or silently reconcile material conflicts.
 
-## Context records
+## Context is part of completion
 
 - `.context/` is the durable operating memory for humans and agents.
+- Maintaining `.context/` is mandatory work, not optional documentation.
+- Every meaningful change must declare its context impact.
+- Update durable records when architecture, domain ownership, public contracts, security, release behavior, database schema, governance or accepted assumptions change.
+- Meaningful work requires a session record.
+- Incomplete or delegated work requires a handoff.
 - Sessions and handoffs preserve continuity and evidence but are not architecture authority.
-- Material decisions must be recorded as numbered ADRs or RFCs.
+- Material decisions must be promoted into numbered ADRs or RFCs rather than left only in a session, issue comment or chat.
 - Agents may draft ADRs and RFCs; human approval is required to mark material decisions accepted.
 - Accepted records are immutable. Replace them only through a new record that marks the old one superseded.
-- At the end of meaningful work, record a session and create a handoff when continuation is required.
+- When no context update is needed, record a concrete `no context impact` justification.
+- Do not consider work complete while code and authoritative context disagree.
 - Never store secrets, private chain-of-thought or unredacted sensitive data in context records.
+
+## Single application core
+
+- UC Rust uses hexagonal / ports-and-adapters architecture with use-case-oriented application operations.
+- Every business operation has one canonical implementation.
+- Domain types own invariants and state transitions.
+- Application operations own use-case orchestration, transaction boundaries, idempotency coordination and process flow.
+- REST, gRPC, messaging consumers, workers, scheduled jobs, CLI and batch processes are inbound adapters only.
+- Inbound adapters may authenticate, validate transport syntax, map DTOs, establish technical context, invoke an application operation and map its result.
+- Inbound adapters must not contain pricing rules, eligibility rules, lifecycle decisions, business workflow procedures or duplicated business branching.
+- A worker or job must invoke the same application operation used by interactive adapters.
+- Infrastructure implementations remain behind outbound ports.
+- Shared business behavior must not be hidden in generic utility modules.
+- Exceptions require an accepted ADR or RFC.
+
+## Database evolution
+
+- Database migrations are ordered, immutable and forward-only.
+- Never edit, reorder or reuse a migration that may have been applied to a shared environment.
+- Corrections require a new migration.
+- Breaking changes use expand/migrate/contract.
+- Schema changes must remain compatible with rolling application deployments.
+- Long-running backfills are separated from short schema migrations.
+- Production migration execution is an explicit deployment step or dedicated controlled job, not an uncontrolled race between application instances.
+- Clean-install, upgrade-path, drift and compatibility tests are required.
+- Destructive schema changes require a reviewed compatibility plan.
+- Database patches must not hide application business logic.
 
 ## Engineering rules
 
@@ -45,6 +78,8 @@ When sources conflict, follow the precedence declared in `.context/manifest.yaml
 - Public contracts and domain events must be versioned before external adoption.
 - Avoid `unwrap`, `expect` and panics in production paths.
 - Unsafe Rust is forbidden unless a dedicated ADR explicitly changes the policy.
+- Avoid duplicate modules, abandoned scaffolding, parallel implementations and dead compatibility layers.
+- Remove obsolete code and files in the same change that replaces them, unless a documented migration window requires coexistence.
 
 ## GitHub governance
 
@@ -75,8 +110,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-Validate context and governance manifests when they are affected.
+When applicable, also run context validation, architecture tests, migration clean-install tests and supported upgrade-path tests.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence strategy, event delivery, public contracts, security model, deployment topology, release model or agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence strategy, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.

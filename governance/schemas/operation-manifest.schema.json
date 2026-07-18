@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nomed.dev/uc-rust/schemas/operation-manifest.schema.json",
+  "title": "UC Rust Canonical Operation Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "semantic_version",
+    "capability_id",
+    "owner",
+    "contracts",
+    "invocation",
+    "authorization",
+    "idempotency",
+    "transaction",
+    "effects",
+    "profiles",
+    "observability",
+    "economics",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "operation_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*:[a-z0-9][a-z0-9.-]*$"},
+    "semantic_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "capability_id": {"type": "string", "minLength": 1},
+    "owner": {"type": "string", "minLength": 1},
+    "summary": {"type": "string"},
+    "contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input", "output", "errors"],
+      "properties": {
+        "input": {"type": "string", "minLength": 1},
+        "output": {"type": "string", "minLength": 1},
+        "errors": {"type": "string", "minLength": 1}
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "deadline_policy", "cancellation"],
+      "properties": {
+        "mode": {"enum": ["request_response", "accepted_async", "long_running", "streaming"]},
+        "deadline_policy": {"type": "string", "minLength": 1},
+        "cancellation": {"enum": ["unsupported", "safe_points", "reconciliation_required"]}
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "actions", "resource_derivation", "audit"],
+      "properties": {
+        "default": {"const": "deny"},
+        "actions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "resource_derivation": {"type": "string", "minLength": 1},
+        "post_state_check": {"type": "boolean", "default": false},
+        "audit": {"type": "boolean"}
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": {"enum": ["not_applicable", "required", "optional_supported", "provider_scoped"]},
+        "scope": {"type": "array", "items": {"enum": ["tenant", "actor", "resource", "operation_version"]}},
+        "retention": {"type": "string"},
+        "concurrent_duplicate": {"enum": ["join", "reject", "replay", "indeterminate"]}
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": {"enum": ["none", "read_snapshot", "local_atomic", "saga", "external_authority"]},
+        "atomic_effects": {"type": "array", "items": {"type": "string"}},
+        "reconciliation": {"type": "string"}
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categories", "publication_owner"],
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {"enum": ["domain_event", "integration_event", "outbox", "audit", "reconciliation", "follow_up_operation", "diagnostic"]}
+        },
+        "publication_owner": {"const": "operation"}
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["central", "store-edge", "store-edge-offline", "warehouse-edge", "test"]}
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trace", "metrics", "sensitive_payloads"],
+      "properties": {
+        "trace": {"type": "boolean"},
+        "metrics": {"type": "boolean"},
+        "sensitive_payloads": {"const": "excluded_by_default"}
+      }
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "attribution"],
+      "properties": {
+        "unit": {"type": "string", "minLength": 1},
+        "attribution": {"enum": ["required", "not_applicable"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixtures", "contract_tests", "architecture_tests"],
+      "properties": {
+        "fixtures": {"type": "array", "items": {"type": "string"}},
+        "contract_tests": {"type": "array", "items": {"type": "string"}},
+        "architecture_tests": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

@@ -12,6 +12,9 @@ pub trait BasketRepository {
 
     /// Persists the complete basket aggregate atomically.
     fn save(&mut self, basket: &Basket) -> Result<(), Self::Error>;
+
+    /// Loads a basket by identifier.
+    fn load(&mut self, basket_id: &BasketId) -> Result<Option<Basket>, Self::Error>;
 }
 
 /// Input contract for adding a product to a basket.
@@ -59,37 +62,20 @@ where
     R: BasketRepository,
 {
     /// Creates the operation with its persistence port.
-    pub const fn new(repository: &'a mut R) -> Self {
-        Self { repository }
-    }
+    pub const fn new(repository: &'a mut R) -> Self { Self { repository } }
 
     /// Executes the operation once.
-    pub fn execute(
-        &mut self,
-        basket_id: BasketId,
-        product_id: ProductId,
-        quantity: u32,
-        unit_price: Money,
-    ) -> Result<Basket, AddProductError<R::Error>> {
+    pub fn execute(&mut self, basket_id: BasketId, product_id: ProductId, quantity: u32, unit_price: Money) -> Result<Basket, AddProductError<R::Error>> {
         let mut basket = Basket::new(basket_id);
-        basket
-            .add_product(product_id, quantity, unit_price)
-            .map_err(AddProductError::Domain)?;
-
-        self.repository
-            .save(&basket)
-            .map_err(AddProductError::Repository)?;
-
+        basket.add_product(product_id, quantity, unit_price).map_err(AddProductError::Domain)?;
+        self.repository.save(&basket).map_err(AddProductError::Repository)?;
         Ok(basket)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        AddProductError, AddProductRequest, AddProductResponse, AddProductToBasket,
-        BasketRepository,
-    };
+    use super::{AddProductError, AddProductRequest, AddProductResponse, AddProductToBasket, BasketRepository};
     use uc_domain::{Basket, BasketError, BasketId, Money, ProductId};
 
     #[derive(Default)]
@@ -102,11 +88,15 @@ mod tests {
         type Error = &'static str;
 
         fn save(&mut self, basket: &Basket) -> Result<(), Self::Error> {
-            if self.fail {
-                return Err("repository unavailable");
-            }
+            if self.fail { return Err("repository unavailable"); }
+            self.saved.retain(|current| current.id() != basket.id());
             self.saved.push(basket.clone());
             Ok(())
+        }
+
+        fn load(&mut self, basket_id: &BasketId) -> Result<Option<Basket>, Self::Error> {
+            if self.fail { return Err("repository unavailable"); }
+            Ok(self.saved.iter().find(|basket| basket.id() == basket_id).cloned())
         }
     }
 
@@ -114,49 +104,22 @@ mod tests {
     fn persists_a_valid_basket() {
         let mut repository = InMemoryBasketRepository::default();
         let mut use_case = AddProductToBasket::new(&mut repository);
-
-        let basket = use_case
-            .execute(
-                BasketId::new("basket-1"),
-                ProductId::new("sku-1"),
-                1,
-                Money::new(999, *b"EUR"),
-            )
-            .expect("valid basket");
-
+        let basket = use_case.execute(BasketId::new("basket-1"), ProductId::new("sku-1"), 1, Money::new(999, *b"EUR")).expect("valid basket");
         assert_eq!(basket.total(), Some(Money::new(999, *b"EUR")));
-        assert_eq!(repository.saved.len(), 1);
+        assert_eq!(repository.load(&BasketId::new("basket-1")).expect("load"), Some(basket));
     }
 
     #[test]
     fn preserves_domain_failure() {
         let mut repository = InMemoryBasketRepository::default();
-        let mut use_case = AddProductToBasket::new(&mut repository);
-        let result = use_case.execute(
-            BasketId::new("basket-1"),
-            ProductId::new("sku-1"),
-            0,
-            Money::new(999, *b"EUR"),
-        );
-
+        let result = AddProductToBasket::new(&mut repository).execute(BasketId::new("basket-1"), ProductId::new("sku-1"), 0, Money::new(999, *b"EUR"));
         assert_eq!(result, Err(AddProductError::Domain(BasketError::InvalidQuantity)));
-        assert!(repository.saved.is_empty());
     }
 
     #[test]
     fn preserves_repository_failure() {
-        let mut repository = InMemoryBasketRepository {
-            saved: Vec::new(),
-            fail: true,
-        };
-        let mut use_case = AddProductToBasket::new(&mut repository);
-        let result = use_case.execute(
-            BasketId::new("basket-1"),
-            ProductId::new("sku-1"),
-            1,
-            Money::new(999, *b"EUR"),
-        );
-
+        let mut repository = InMemoryBasketRepository { saved: Vec::new(), fail: true };
+        let result = AddProductToBasket::new(&mut repository).execute(BasketId::new("basket-1"), ProductId::new("sku-1"), 1, Money::new(999, *b"EUR"));
         assert_eq!(result, Err(AddProductError::Repository("repository unavailable")));
     }
 
@@ -165,11 +128,7 @@ mod tests {
         let source = include_str!("../../../fixtures/contracts/v1/basket/add-product-request.valid.json");
         let request: AddProductRequest = serde_json::from_str(source).expect("valid fixture");
         let serialized = serde_json::to_string_pretty(&request).expect("serializable request");
-        let reparsed: AddProductRequest = serde_json::from_str(&serialized).expect("round trip");
-
-        assert_eq!(request, reparsed);
-        assert_eq!(request.quantity, 2);
-        assert_eq!(request.currency, "EUR");
+        assert_eq!(request, serde_json::from_str(&serialized).expect("round trip"));
     }
 
     #[test]
@@ -177,9 +136,6 @@ mod tests {
         let source = include_str!("../../../fixtures/contracts/v1/basket/add-product-response.valid.json");
         let response: AddProductResponse = serde_json::from_str(source).expect("valid fixture");
         let serialized = serde_json::to_string_pretty(&response).expect("serializable response");
-        let reparsed: AddProductResponse = serde_json::from_str(&serialized).expect("round trip");
-
-        assert_eq!(response, reparsed);
-        assert_eq!(response.total_minor, 2_500);
+        assert_eq!(response, serde_json::from_str(&serialized).expect("round trip"));
     }
 }

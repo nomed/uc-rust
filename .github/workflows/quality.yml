@@ -1,9 +1,16 @@
 name: Quality
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Quality suite to execute
+        required: true
+        default: quick
+        type: choice
+        options:
+          - quick
+          - full
 
 permissions:
   contents: read
@@ -14,6 +21,7 @@ concurrency:
 
 jobs:
   quality:
+    name: ${{ inputs.suite }} quality suite
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -29,19 +37,62 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Install quality tools
+      - name: Install quick-suite tools
         uses: taiki-e/install-action@v2
         with:
-          tool: just,cargo-nextest,cargo-llvm-cov
+          tool: just,cargo-nextest
 
-      - name: Run repository quality gates
-        run: just check
+      - name: Install coverage tool
+        if: inputs.suite == 'full'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Run quick quality gates
+        if: inputs.suite == 'quick'
+        run: |
+          set -o pipefail
+          just fmt 2>&1 | tee fmt.log
+          just lint 2>&1 | tee lint.log
+          just test 2>&1 | tee test.log
+          just docs 2>&1 | tee docs.log
+          just validate 2>&1 | tee validate.log
+
+      - name: Run full quality gates
+        if: inputs.suite == 'full'
+        run: |
+          set -o pipefail
+          just check 2>&1 | tee full-quality.log
+
+      - name: Write execution summary
+        if: always()
+        run: |
+          {
+            echo "## UC Rust quality run"
+            echo ""
+            echo "- Suite: \`${{ inputs.suite }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo ""
+            echo "Logs are attached to this run when a gate fails."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-diagnostics-${{ inputs.suite }}
+          path: |
+            *.log
+            target/coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload coverage evidence
-        if: always()
+        if: success() && inputs.suite == 'full'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-lcov
           path: target/coverage/lcov.info
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14

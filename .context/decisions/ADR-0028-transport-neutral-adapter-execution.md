@@ -1,6 +1,6 @@
 # ADR-0028 — Transport-Neutral Adapter Execution Model
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #51
 - Parent epic: #46

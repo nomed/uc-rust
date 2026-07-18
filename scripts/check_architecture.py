@@ -61,13 +61,19 @@ def main() -> None:
         {"postgres", "uc-application", "uc-domain"},
     )
     require_exact("crates/uc-sync/Cargo.toml", set())
+    require_exact(
+        "crates/uc-sync-sqlite/Cargo.toml",
+        {"rusqlite", "uc-sync"},
+    )
 
     server = dependency_names("apps/uc-server/Cargo.toml")
     if "uc-application" not in server:
         fail("uc-server must compose the application crate")
 
-    core_text = read("crates/uc-domain/Cargo.toml") + read(
-        "crates/uc-application/Cargo.toml"
+    core_text = (
+        read("crates/uc-domain/Cargo.toml")
+        + read("crates/uc-application/Cargo.toml")
+        + read("crates/uc-sync/Cargo.toml")
     )
     for provider_token in (
         "sqlx",

@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nomed/uc-rust/governance/schemas/capability-realization-manifest.schema.json",
+  "title": "UC Rust Capability Realization Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "realization_id",
+    "provider_id",
+    "capability_id",
+    "kind",
+    "operations",
+    "execution",
+    "authority",
+    "guarantees",
+    "compatibility",
+    "quality",
+    "economics",
+    "security",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "realization_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+    "provider_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+    "capability_id": {"type": "string", "minLength": 3, "maxLength": 160},
+    "kind": {"enum": ["native", "delegated", "composed", "pipeline", "hybrid"]},
+    "status": {"enum": ["proposed", "approved", "deprecated", "withdrawn"], "default": "proposed"},
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "semantic_versions", "invocation_modes"],
+        "properties": {
+          "id": {"type": "string", "minLength": 3},
+          "semantic_versions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "invocation_modes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["sync", "async", "long-running"]}},
+          "unsupported_contexts": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["form", "profiles"],
+      "properties": {
+        "form": {"enum": ["in-process", "local-process", "sidecar", "remote-service", "composition-graph"]},
+        "transport": {"enum": ["in-process", "grpc", "http", "messaging", "stdio", "custom"]},
+        "profiles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["central", "store-edge-online", "store-edge-offline", "warehouse-edge", "test"]}},
+        "endpoint_reference": {"type": "string"},
+        "residency": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "source_data_authority", "outcome_authority", "outcome_state"],
+      "properties": {
+        "role": {"enum": ["advisory", "calculator", "validator", "issuer", "system-of-record", "aggregator", "orchestrator"]},
+        "source_data_authority": {"type": "string"},
+        "outcome_authority": {"type": "string"},
+        "outcome_state": {"enum": ["advisory", "provisional", "reserved", "final"]},
+        "replacement_policy": {"enum": ["replaceable", "amend-only", "not-replaceable"]},
+        "evidence_type": {"type": "string"}
+      }
+    },
+    "guarantees": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotency", "deadline_ms", "retry", "offline", "indeterminate_outcome"],
+      "properties": {
+        "idempotency": {"enum": ["none", "invocation-key", "business-key", "provider-key"]},
+        "idempotency_retention_seconds": {"type": "integer", "minimum": 0},
+        "deadline_ms": {"type": "integer", "minimum": 1},
+        "cancellation": {"enum": ["not-supported", "best-effort", "confirmed"]},
+        "retry": {"enum": ["never", "safe-before-send", "safe-before-ack", "idempotent", "reconcile-before-retry"]},
+        "offline": {"enum": ["unavailable", "local-realization", "stale-snapshot", "queue-defer", "degraded-result", "manual-resolution"]},
+        "freshness_limit_seconds": {"type": "integer", "minimum": 0},
+        "indeterminate_outcome": {"enum": ["impossible", "reconcile", "manual-resolution", "canonical-indeterminate"]},
+        "fallback_realization_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_contract", "adapter_revision", "binding_policy_revision"],
+      "properties": {
+        "provider_contract": {"type": "string"},
+        "adapter_revision": {"type": "string"},
+        "binding_policy_revision": {"type": "string"},
+        "min_runtime_version": {"type": "string"},
+        "max_runtime_version": {"type": "string"},
+        "rollout_strategy": {"enum": ["all-at-once", "canary", "percentage", "tenant", "store"]},
+        "rollback_supported": {"type": "boolean"}
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latency_budget_ms", "availability_target", "concurrency_limit"],
+      "properties": {
+        "latency_budget_ms": {"type": "integer", "minimum": 1},
+        "availability_target": {"type": "number", "minimum": 0, "maximum": 100},
+        "concurrency_limit": {"type": "integer", "minimum": 1},
+        "circuit_breaker_policy": {"type": "string"},
+        "bulkhead": {"type": "string"}
+      }
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attribution_unit", "cost_model_revision"],
+      "properties": {
+        "attribution_unit": {"type": "string"},
+        "cost_model_revision": {"type": "string"},
+        "max_cost_per_unit": {"type": "number", "minimum": 0},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_isolation", "data_minimization_profile", "authentication", "authorization"],
+      "properties": {
+        "tenant_isolation": {"enum": ["required", "dedicated", "provider-attested"]},
+        "data_minimization_profile": {"type": "string"},
+        "authentication": {"type": "string"},
+        "authorization": {"type": "string"},
+        "audit_profile": {"type": "string"},
+        "sensitive_fields": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph_revision", "stages"],
+      "properties": {
+        "graph_revision": {"type": "string"},
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stage_id", "semantic_role", "realization_id", "failure_policy"],
+            "properties": {
+              "stage_id": {"type": "string"},
+              "semantic_role": {"enum": ["enrich", "validate", "calculate", "authorize", "persist", "finalize", "aggregate"]},
+              "realization_id": {"type": "string"},
+              "depends_on": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+              "authority_contribution": {"type": "string"},
+              "failure_policy": {"enum": ["fail", "skip-explicit", "compensate", "reconcile", "manual-resolution"]},
+              "deadline_ms": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conformance_suite", "fixtures_revision", "observability_profile"],
+      "properties": {
+        "conformance_suite": {"type": "string"},
+        "fixtures_revision": {"type": "string"},
+        "observability_profile": {"type": "string"},
+        "security_assessment": {"type": "string"},
+        "operational_runbook": {"type": "string"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"enum": ["composed", "pipeline"]}}},
+      "then": {"required": ["composition"]}
+    },
+    {
+      "if": {"properties": {"guarantees": {"properties": {"offline": {"const": "stale-snapshot"}}}}},
+      "then": {"properties": {"guarantees": {"required": ["freshness_limit_seconds"]}}}
+    }
+  ]
+}

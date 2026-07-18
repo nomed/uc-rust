@@ -1,6 +1,6 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-default: check
+default: check-quick
 
 bootstrap:
     rustup show
@@ -16,6 +16,10 @@ lint:
 test:
     cargo nextest run --workspace --all-features
 
+test-postgres:
+    test -n "${UC_TEST_POSTGRES_URL:-}" || { echo "UC_TEST_POSTGRES_URL is required" >&2; exit 1; }
+    cargo test -p uc-persistence-postgres satisfies_basket_repository_contract -- --ignored --exact
+
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 
@@ -28,4 +32,8 @@ coverage:
     cargo llvm-cov nextest --workspace --all-features --branch --lcov --output-path target/coverage/lcov.info
     python3 scripts/check_coverage.py target/coverage/lcov.info
 
-check: fmt lint test docs validate coverage
+check-quick: fmt lint test docs validate
+
+check-full: check-quick coverage
+
+check: check-quick

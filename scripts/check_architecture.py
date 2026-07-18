@@ -60,6 +60,7 @@ def main() -> None:
         "crates/uc-persistence-postgres/Cargo.toml",
         {"postgres", "uc-application", "uc-domain"},
     )
+    require_exact("crates/uc-sync/Cargo.toml", set())
 
     server = dependency_names("apps/uc-server/Cargo.toml")
     if "uc-application" not in server:

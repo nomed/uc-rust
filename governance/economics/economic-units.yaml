@@ -1,0 +1,58 @@
+schema_version: 1
+normative_source:
+  repository: nomed/ebd-bok
+  concepts:
+    - Economic Unit
+    - Meaningful Economic Unit
+    - Unit Economics Chain
+status_values:
+  - candidate
+  - accepted
+  - deprecated
+units:
+  - id: uc.synced_business_event
+    name: Durable synchronized business event
+    status: candidate
+    value_statement: Preserve and transfer one durable business effect between an authoritative source and its replica.
+    scope: data-plane synchronization
+    volume_measure: accepted non-duplicate business events
+    exclusions:
+      - transport retries
+      - duplicate deliveries
+      - health and control-plane messages
+    current_maturity: Crawl
+    notes: Initial executable unit for sync economics; not equivalent to a retail transaction or full Cost-to-Serve.
+  - id: uc.completed_sale
+    name: Completed sale
+    status: candidate
+    value_statement: Complete one retail sale with durable commercial and operational effects.
+    scope: checkout and order
+    volume_measure: completed non-voided sales
+    current_maturity: candidate-only
+  - id: uc.store_day
+    name: Active store day
+    status: candidate
+    value_statement: Keep one store operational for one calendar day under its declared capability profile.
+    scope: central plus store-edge service
+    volume_measure: active store-days
+    current_maturity: candidate-only
+  - id: uc.terminal_month
+    name: Active terminal month
+    status: candidate
+    value_statement: Serve one managed retail terminal for one month.
+    scope: edge fleet and runtime
+    volume_measure: active terminal-months
+    current_maturity: candidate-only
+  - id: uc.tenant_month
+    name: Active tenant month
+    status: candidate
+    value_statement: Serve one active tenant for one month within an offering boundary.
+    scope: platform and offering
+    volume_measure: active tenant-months
+    current_maturity: candidate-only
+acceptance_requirements:
+  - business value is explicit
+  - offering and capability boundary are known
+  - volume is reproducibly measurable
+  - cost causality is materially explainable
+  - the unit informs architecture, margin, pricing or portfolio decisions

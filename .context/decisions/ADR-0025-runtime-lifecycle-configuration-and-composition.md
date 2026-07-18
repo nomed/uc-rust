@@ -1,6 +1,6 @@
 # ADR-0025 — Runtime Lifecycle, Configuration and Explicit Composition
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-18
 - Governing issue: #48
 - Parent epic: #46

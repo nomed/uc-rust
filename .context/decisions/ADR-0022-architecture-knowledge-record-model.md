@@ -4,7 +4,8 @@
 - Date: 2026-07-18
 - Governing issue: #56
 - Parent epic: #55
-- Related: #62, ADR-0021, RFC-0001
+- Related: #62, #63, #64, #65, #66, #67, ADR-0021, RFC-0001
+- Review readiness: Ready for accountable human acceptance
 
 ## Context
 
@@ -139,22 +140,29 @@ The meta-model imposes these additional invariants:
 
 ## Validation evidence produced
 
-- `docs/architecture/architecture-meta-model.md`;
+- `docs/architecture/architecture-meta-model.md` (#62);
+- `docs/architecture/record-lifecycle.md` (#63);
+- `docs/architecture/relationship-model.md` (#64);
+- `schemas/architecture-record-envelope.schema.json` and `scripts/validate_records.py` (#65);
+- `docs/governance/adr-rfc-migration.md` and migration registry (#66);
+- `docs/architecture/authority-boundaries.md` and namespace registry (#67);
 - `docs/knowledge/common-record-envelope.md`;
 - `docs/knowledge/record-taxonomy.md`;
 - `docs/knowledge/records/CR-0001-basket-capability.md`;
 - `docs/knowledge/records/RRR-0001-operation-invocation.md`;
 - `docs/knowledge/record-model-validation.md`.
 
-The examples validate the distinction between capability semantics and reusable runtime invocation semantics. The architecture meta-model resolves the primitive entity boundaries required by #62.
+The examples validate the distinction between capability semantics and reusable runtime invocation semantics. The linked work resolves lifecycle, relationship, schema, migration and authority boundaries without requiring Yukh or external infrastructure.
 
-## Required evidence before acceptance
+## Acceptance readiness
 
-- lifecycle model accepted;
-- relationship model accepted;
-- schemas validate the common envelope and canonical CR/RRR records;
-- migration path for existing ADRs and RFCs documented;
-- UC-BoK, Yukh and EbD responsibility/identifier boundaries confirmed;
-- accountable human review of CR-0001 and RRR-0001.
+The technical prerequisites for acceptance are complete:
 
-Human acceptance remains mandatory under `.context/manifest.yaml`. Completion of #62 does not itself accept this ADR.
+- [x] lifecycle model defined;
+- [x] relationship model defined;
+- [x] schemas and validator cover the common envelope and canonical CR/RRR records;
+- [x] migration path for existing ADRs and RFCs documented;
+- [x] UC-BoK, UC-Rust, Yukh and EbD responsibility/identifier boundaries defined;
+- [x] canonical CR-0001 and RRR-0001 available for accountable review.
+
+The only remaining action is an explicit attributable human acceptance decision. Human acceptance remains mandatory under `.context/manifest.yaml`; issue completion and passing validation do not change this ADR from `Proposed` to `Accepted`.

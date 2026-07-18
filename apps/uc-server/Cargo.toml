@@ -1,0 +1,13 @@
+[package]
+name = "uc-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+uc-application = { path = "../../crates/uc-application" }
+uc-domain = { path = "../../crates/uc-domain" }
+
+[lints]
+workspace = true

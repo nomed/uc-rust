@@ -2,7 +2,7 @@
 id: uc-rust:RFC-0002
 type: RFC
 schema_version: 1
-content_version: 0.2.0
+content_version: 0.3.0
 title: UC Runtime Foundation
 summary: Define the smallest shared runtime required to execute canonical UC Rust Operations consistently across central, store-edge and future runtime profiles.
 status: Draft
@@ -29,6 +29,8 @@ relations:
     target: uc-rust:ADR-0021
   - type: depends_on
     target: uc-rust:ADR-0024
+  - type: depends_on
+    target: uc-rust:ADR-0025
 review:
   required_roles: [runtime-architecture, reliability, security]
   reviewers: []
@@ -57,16 +59,16 @@ The Runtime Foundation covers:
 
 1. operation registration and invocation;
 2. typed execution context and cancellation/deadline propagation;
-3. lifecycle, startup, readiness, quiesce and graceful shutdown;
+3. lifecycle, startup, readiness, degradation, quiesce, drain and graceful shutdown;
 4. explicit dependency composition;
-5. configuration loading, validation, revision and safe reload;
+5. typed immutable configuration snapshots, validation, revision and safe reload;
 6. structured errors and failure correlation;
 7. logging, tracing, metrics and health contribution contracts;
 8. scheduled and background work execution through Operations;
 9. runtime capability discovery;
 10. Governed Capability Realization manifests, binding and invocation handles;
 11. extension registration boundaries;
-12. operation- and realization-level Economics by Design correlation.
+12. operation-, component- and realization-level Economics by Design correlation.
 
 ## Non-goals
 
@@ -80,7 +82,8 @@ The first runtime release does not provide:
 - business workflow logic;
 - transport-specific business services;
 - provider-specific Operations or unrestricted provider clients;
-- implicit fallback that changes authority or semantic guarantees.
+- implicit fallback that changes authority or semantic guarantees;
+- mutable global configuration or direct environment reads from Operations.
 
 ## Proposed crate boundaries
 
@@ -88,8 +91,8 @@ The first runtime release does not provide:
 uc-operation        identifiers, contracts, invocation context and outcome
 uc-runtime          composition, invocation pipeline and runtime profile
 uc-capability       realization manifests, binding decisions and invocation handles
-uc-lifecycle        lifecycle states, shutdown and readiness
-uc-config           typed configuration, revision and reload contract
+uc-lifecycle        lifecycle states, readiness, degradation, drain and shutdown
+uc-config           typed snapshots, validation, revision and reload protocol
 uc-observability    logging/tracing/metrics/health ports and correlation
 uc-work             scheduler, job and worker execution contracts
 uc-extension        governed extension registration and compatibility
@@ -116,6 +119,37 @@ adapter decode
 
 Each stage must be optional or replaceable through an explicit contract. The pipeline must not become a hidden business-rule engine. Delivery adapters never select realizations and Operations never receive an unrestricted service locator.
 
+## Lifecycle and composition contract
+
+ADR-0025 governs lifecycle, configuration and composition.
+
+The runtime uses the lifecycle:
+
+```text
+Created -> Bootstrapping -> Starting -> Ready/Degraded
+Ready/Degraded -> Quiescing -> Draining -> Stopping -> Stopped
+startup or invariant failure -> Failed
+```
+
+Readiness is profile- and Operation-set-specific. Process liveness, runtime readiness and capability operability are independent. Store-edge may remain operational for an approved offline subset while central connectivity and remote realizations are unavailable.
+
+Every executable has one explicit composition root. It loads an accepted immutable configuration snapshot, constructs typed providers, validates Operation and realization compatibility, wires typed ports, registers lifecycle-managed components and emits a redacted composition manifest. No application Operation can access a service locator, global mutable state or arbitrary configuration source.
+
+Components declare dependencies, criticality, affected Operations, start/stop deadlines, reload class, health contribution and resource ownership. Startup follows dependency order; rollback and shutdown use reverse order.
+
+## Configuration and reload contract
+
+Configuration snapshots are schema-versioned, content-digested and immutable. Fields are classified as:
+
+- `dynamic_safe`;
+- `drain_then_reload`;
+- `restart_required`;
+- `immutable_identity`.
+
+Reload follows prepare, validate, optional quiesce/drain, atomic commit, activate and verify. A rejected candidate leaves the current snapshot unchanged. Partial mutation and silent mixed revisions are forbidden. In-flight invocations retain the configuration and binding revisions captured at admission.
+
+The normative schema is `governance/schemas/runtime-profile-config.schema.json`; detailed semantics are in `docs/architecture/runtime-lifecycle-and-composition.md`.
+
 ## Governed Capability Realization runtime contract
 
 The runtime:
@@ -135,11 +169,11 @@ The runtime does not claim that remote and local realizations have identical ope
 ## Runtime profiles
 
 - `central`: complete configured capability set and global integrations;
-- `store-edge`: declared offline-capable subset with local persistence, local/delegated realizations and sync;
+- `store-edge`: declared offline-capable subset with local persistence, durable local manifests, local/delegated realizations and sync;
 - `warehouse-edge`: future profile using the same Operation contracts;
 - test profiles: deterministic in-memory, native, delegated and composed realization composition.
 
-A profile advertises eligible realization manifests and offline classes. Edge deployment alone never implies that an Operation has an offline-capable realization.
+A profile advertises eligible realization manifests and offline classes. Edge deployment alone never implies that an Operation has an offline-capable realization. WAN connectivity is not a universal store-edge readiness dependency.
 
 ## Quality and cost constraints
 
@@ -148,34 +182,34 @@ A profile advertises eligible realization manifests and offline classes. Edge de
 - no service locator accessible from Operations;
 - no provider SDK type in canonical Operation contracts;
 - allocation and latency budgets per invocation and per realization stage;
-- idle CPU and memory budgets per profile;
+- startup, readiness, idle CPU and memory budgets per profile;
+- bounded quiesce/drain/shutdown deadlines;
 - independent provider concurrency, bulkhead and circuit-breaker budgets;
 - one Operation must be callable through multiple adapters without semantic drift;
 - native and delegated realizations must pass the same semantic conformance fixtures;
 - all public contracts documented and covered by fixtures/tests;
-- provider components selected with cost-to-serve scorecards only after semantic, authority, security and quality eligibility.
+- provider and composition choices selected with cost-to-serve scorecards only after semantic, authority, security and quality eligibility.
 
 ## Open questions
 
-- trait object versus generic/static composition per boundary;
-- sync/async Operation contract and cancellation semantics;
-- transaction boundary ownership around delegated and composed realizations;
-- reloadable versus restart-required binding and manifest configuration;
-- extension ABI stability before 1.0;
+- final physical crate consolidation after component scorecards;
 - scheduler guarantees and persistent job ownership;
 - minimum embedded edge footprint;
-- durable reconciliation ownership for indeterminate external outcomes.
+- durable reconciliation ownership for indeterminate external outcomes;
+- exact health/operability aggregation contract, governed by #49.
 
 ## Exit evidence
 
-- accepted ADR-0021 and ADR-0024;
+- accepted ADR-0021, ADR-0024 and ADR-0025;
 - operation contract and invocation tests;
-- lifecycle failure tests;
+- lifecycle state-machine and startup rollback tests;
+- atomic configuration reload and rejected-candidate tests;
+- quiesce, drain and shutdown tests;
 - two delivery adapters calling the same Operation;
 - native and delegated realizations passing shared canonical fixtures;
 - binding tests across at least tenant and runtime-profile dimensions;
 - failure, timeout, idempotency, fallback and indeterminate-outcome tests;
 - one governed composed/pipeline proof;
-- central and edge composition proof;
-- benchmark and realization-attributed economic report;
-- architecture dependency evidence preventing adapter bypass and provider leakage.
+- central and edge composition proof, including WAN-loss operability;
+- benchmark and component/realization-attributed economic report;
+- architecture dependency evidence preventing adapter bypass, provider leakage, mutable globals and service-locator access.

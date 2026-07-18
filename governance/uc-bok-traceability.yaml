@@ -1,0 +1,28 @@
+schema_version: 1
+specification:
+  repository: nomed/uc-bok
+  revision: TBD
+  release: TBD
+reference_implementation:
+  repository: nomed/uc-rust
+status_values:
+  - implemented
+  - partial
+  - planned
+  - not-applicable
+  - intentionally-divergent
+mappings: []
+feedback:
+  specification_issue: https://github.com/nomed/uc-bok/issues/9
+  implementation_issue: https://github.com/nomed/uc-rust/issues/38
+  required_fields:
+    - source_repository
+    - source_reference
+    - target_repository
+    - affected_uc_bok_identifiers
+    - affected_uc_rust_artifacts
+    - change_type
+    - evidence
+    - compatibility_and_migration_impact
+    - acceptance_criteria
+    - reciprocal_issue

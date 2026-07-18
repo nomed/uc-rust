@@ -88,6 +88,7 @@
     "23":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
     "24":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
     "25":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}},
-    "26":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}}
+    "26":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}},
+    "27":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}}
   }
 }

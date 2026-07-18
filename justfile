@@ -21,6 +21,7 @@ docs:
 
 validate:
     python3 scripts/validate_repository.py
+    python3 scripts/check_architecture.py
 
 coverage:
     mkdir -p target/coverage

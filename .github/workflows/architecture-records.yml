@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/knowledge/records/**"
+      - "docs/knowledge/record-identifiers-and-versioning.md"
       - "docs/knowledge/relationship-model.md"
       - "docs/knowledge/graph-views-and-integrity.md"
       - ".context/decisions/**"
@@ -15,6 +16,7 @@ on:
       - "schemas/**"
       - "scripts/validate_records.py"
       - "scripts/validate_record_graph.py"
+      - "scripts/validate_record_changes.py"
       - "scripts/inventory_legacy_records.py"
       - "tests/fixtures/records/**"
       - "tests/test_record_validator.py"
@@ -24,6 +26,7 @@ on:
     branches: [main]
     paths:
       - "docs/knowledge/records/**"
+      - "docs/knowledge/record-identifiers-and-versioning.md"
       - "docs/knowledge/relationship-model.md"
       - "docs/knowledge/graph-views-and-integrity.md"
       - ".context/decisions/**"
@@ -35,6 +38,7 @@ on:
       - "schemas/**"
       - "scripts/validate_records.py"
       - "scripts/validate_record_graph.py"
+      - "scripts/validate_record_changes.py"
       - "scripts/inventory_legacy_records.py"
       - "tests/fixtures/records/**"
       - "tests/test_record_validator.py"
@@ -49,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -58,6 +64,9 @@ jobs:
         run: python scripts/validate_records.py docs/knowledge/records
       - name: Validate record graph integrity
         run: python scripts/validate_record_graph.py docs/knowledge/records
+      - name: Validate record lifecycle transitions
+        if: github.event_name == 'pull_request'
+        run: python scripts/validate_record_changes.py --base-ref origin/${{ github.base_ref }} docs/knowledge/records
       - name: Validate legacy migration inventory
         run: python scripts/inventory_legacy_records.py --check --format markdown
       - name: Run validator fixtures

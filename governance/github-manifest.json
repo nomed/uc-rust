@@ -71,8 +71,8 @@
     "8":{"labels":["priority:P1","type:architecture","area:pricing"],"milestone":"M3 — Commercial Basket","project":{"Status":"Blocked","Priority":"P1","Type":"Architecture","Area":"Pricing","Release":"M3","Size":"L"}},
     "9":{"labels":["priority:P1","type:discovery","area:checkout-order"],"milestone":"M4 — Checkout to Order","project":{"Status":"Blocked","Priority":"P1","Type":"Discovery","Area":"Checkout & Order","Release":"M4","Size":"M"}},
     "10":{"labels":["priority:P0","type:epic","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Epic","Area":"Governance","Release":"M0","Size":"XL"}},
-    "11":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"Ready","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}},
-    "12":{"labels":["priority:P0","type:architecture","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Architecture","Release":"M0","Size":"XL"}},
+    "11":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}},
+    "12":{"labels":["priority:P0","type:architecture","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Architecture","Release":"M0","Size":"XL"}},
     "13":{"labels":["priority:P0","type:architecture","area:agentic-system"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Agentic System","Release":"M0","Size":"L"}},
     "14":{"labels":["priority:P0","type:architecture","area:agentic-system"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Agentic System","Release":"M0","Size":"L"}},
     "15":{"labels":["priority:P0","type:governance","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Governance","Release":"M0","Size":"M"}},
@@ -100,6 +100,7 @@
     "37":{"labels":["priority:P0","type:gate","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Gate","Area":"Governance","Release":"M0","Size":"L"}},
     "38":{"labels":["priority:P0","type:governance","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Architecture","Release":"M0","Size":"L"}},
     "39":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"XL"}},
-    "40":{"labels":["priority:P0","type:architecture","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Delivery","Release":"M0","Size":"XL"}}
+    "40":{"labels":["priority:P0","type:architecture","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Delivery","Release":"M0","Size":"XL"}},
+    "41":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}}
   }
 }

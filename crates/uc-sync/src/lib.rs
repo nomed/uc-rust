@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, HashSet, VecDeque};
 
 /// Stable identity of an edge node.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EdgeId(String);
 
 impl EdgeId {
@@ -17,10 +17,16 @@ impl EdgeId {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
+
+    /// Returns the canonical edge identity.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Globally unique identity of one published event.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EventId(String);
 
 impl EventId {
@@ -28,6 +34,12 @@ impl EventId {
     #[must_use]
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
+    }
+
+    /// Returns the canonical event identity.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
 
@@ -89,6 +101,14 @@ pub struct EdgeOutbox {
 }
 
 impl EdgeOutbox {
+    /// Recreates an outbox from persisted events in publication order.
+    #[must_use]
+    pub fn from_pending(events: impl IntoIterator<Item = EdgeEvent>) -> Self {
+        Self {
+            pending: events.into_iter().collect(),
+        }
+    }
+
     /// Appends one event durably in publication order.
     pub fn enqueue(&mut self, event: EdgeEvent) {
         self.pending.push_back(event);
@@ -131,16 +151,19 @@ impl EdgeOutbox {
 pub enum AcceptResult {
     /// The event was accepted and became the next business effect.
     Applied,
-    /// The event was already processed and produced no duplicate effect.
+    /// The exact event was already processed and produced no duplicate effect.
     Duplicate,
     /// The event is valid but waits for an earlier sequence.
     Buffered,
+    /// The same edge sequence is already bound to another event identity.
+    SequenceConflict,
 }
 
 /// Central inbox that deduplicates events and applies each edge sequence in order.
 #[derive(Debug, Default)]
 pub struct CentralInbox {
     seen: HashSet<EventId>,
+    accepted_sequences: BTreeMap<EdgeId, BTreeMap<u64, EventId>>,
     next_sequence: BTreeMap<EdgeId, u64>,
     buffered: BTreeMap<EdgeId, BTreeMap<u64, EdgeEvent>>,
     applied: Vec<EdgeEvent>,
@@ -151,6 +174,30 @@ impl CentralInbox {
     pub fn accept(&mut self, event: EdgeEvent) -> AcceptResult {
         if self.seen.contains(event.event_id()) {
             return AcceptResult::Duplicate;
+        }
+
+        if let Some(existing) = self
+            .accepted_sequences
+            .get(event.edge_id())
+            .and_then(|sequences| sequences.get(&event.sequence()))
+        {
+            return if existing == event.event_id() {
+                AcceptResult::Duplicate
+            } else {
+                AcceptResult::SequenceConflict
+            };
+        }
+
+        if let Some(existing) = self
+            .buffered
+            .get(event.edge_id())
+            .and_then(|events| events.get(&event.sequence()))
+        {
+            return if existing.event_id() == event.event_id() {
+                AcceptResult::Duplicate
+            } else {
+                AcceptResult::SequenceConflict
+            };
         }
 
         let expected = self
@@ -168,8 +215,7 @@ impl CentralInbox {
         }
 
         if event.sequence() < expected {
-            self.seen.insert(event.event_id().clone());
-            return AcceptResult::Duplicate;
+            return AcceptResult::SequenceConflict;
         }
 
         let edge_id = event.edge_id().clone();
@@ -182,6 +228,10 @@ impl CentralInbox {
         let next = event.sequence().saturating_add(1);
         self.next_sequence.insert(event.edge_id().clone(), next);
         self.seen.insert(event.event_id().clone());
+        self.accepted_sequences
+            .entry(event.edge_id().clone())
+            .or_default()
+            .insert(event.sequence(), event.event_id().clone());
         self.applied.push(event);
     }
 
@@ -203,6 +253,15 @@ impl CentralInbox {
     #[must_use]
     pub fn applied(&self) -> &[EdgeEvent] {
         &self.applied
+    }
+
+    /// Returns buffered events in deterministic edge/sequence order.
+    #[must_use]
+    pub fn buffered(&self) -> Vec<EdgeEvent> {
+        self.buffered
+            .values()
+            .flat_map(|events| events.values().cloned())
+            .collect()
     }
 
     /// Returns the number of events waiting for an earlier sequence.
@@ -227,10 +286,7 @@ mod tests {
 
     #[test]
     fn wan_partition_preserves_the_complete_edge_backlog() {
-        let mut outbox = EdgeOutbox::default();
-        outbox.enqueue(event(1));
-        outbox.enqueue(event(2));
-
+        let outbox = EdgeOutbox::from_pending([event(1), event(2)]);
         let after_restart = outbox.pending();
 
         assert_eq!(after_restart.len(), 2);
@@ -258,6 +314,44 @@ mod tests {
         assert_eq!(inbox.buffered_len(), 0);
         assert_eq!(inbox.applied()[0].sequence(), 1);
         assert_eq!(inbox.applied()[1].sequence(), 2);
+    }
+
+    #[test]
+    fn buffered_sequence_collision_is_an_explicit_conflict() {
+        let mut inbox = CentralInbox::default();
+        assert_eq!(inbox.accept(event(2)), AcceptResult::Buffered);
+
+        let conflicting = EdgeEvent::new(
+            EdgeId::new("store-1"),
+            EventId::new("different-event"),
+            2,
+            "different-sale",
+        );
+
+        assert_eq!(
+            inbox.accept(conflicting),
+            AcceptResult::SequenceConflict
+        );
+        assert_eq!(inbox.buffered_len(), 1);
+    }
+
+    #[test]
+    fn applied_sequence_collision_is_an_explicit_conflict() {
+        let mut inbox = CentralInbox::default();
+        assert_eq!(inbox.accept(event(1)), AcceptResult::Applied);
+
+        let conflicting = EdgeEvent::new(
+            EdgeId::new("store-1"),
+            EventId::new("different-event"),
+            1,
+            "different-sale",
+        );
+
+        assert_eq!(
+            inbox.accept(conflicting),
+            AcceptResult::SequenceConflict
+        );
+        assert_eq!(inbox.applied().len(), 1);
     }
 
     #[test]

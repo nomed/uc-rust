@@ -12,7 +12,6 @@
     {"name":"priority:P1","color":"d93f0b","description":"High priority"},
     {"name":"priority:P2","color":"fbca04","description":"Normal priority"},
     {"name":"priority:P3","color":"0e8a16","description":"Low priority or deferred"},
-
     {"name":"type:epic","color":"3e4b9e","description":"Outcome spanning multiple deliverables"},
     {"name":"type:discovery","color":"5319e7","description":"Research and definition before implementation"},
     {"name":"type:architecture","color":"0052cc","description":"Architecture or system design"},
@@ -25,7 +24,6 @@
     {"name":"type:feature","color":"0e8a16","description":"User-visible or API capability"},
     {"name":"type:domain","color":"22863a","description":"Domain model and business rules"},
     {"name":"type:test","color":"bfdadc","description":"Verification and test capability"},
-
     {"name":"area:platform","color":"c5def5","description":"Cross-cutting platform"},
     {"name":"area:product","color":"fef2c0","description":"Product vision and scope"},
     {"name":"area:architecture","color":"d4c5f9","description":"Target architecture and context map"},
@@ -89,6 +87,16 @@
     "24":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
     "25":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}},
     "26":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}},
-    "27":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}}
+    "27":{"labels":["priority:P0","type:test","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Test","Area":"Delivery","Release":"M0","Size":"L"}},
+    "28":{"labels":["priority:P0","type:security","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Security","Area":"Platform","Release":"M0","Size":"L"}},
+    "29":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"XL"}},
+    "30":{"labels":["priority:P0","type:governance","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Architecture","Release":"M0","Size":"L"}},
+    "31":{"labels":["priority:P0","type:architecture","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Platform","Release":"M0","Size":"L"}},
+    "32":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"XL"}},
+    "33":{"labels":["priority:P0","type:foundation","area:platform"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Foundation","Area":"Platform","Release":"M0","Size":"L"}},
+    "34":{"labels":["priority:P0","type:security","area:security"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Security","Area":"Security","Release":"M0","Size":"L"}},
+    "35":{"labels":["priority:P0","type:foundation","area:golden-path"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Foundation","Area":"Golden Path","Release":"M0","Size":"L"}},
+    "36":{"labels":["priority:P0","type:security","area:security"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Security","Area":"Security","Release":"M0","Size":"XL"}},
+    "37":{"labels":["priority:P0","type:gate","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Gate","Area":"Governance","Release":"M0","Size":"L"}}
   }
 }

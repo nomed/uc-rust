@@ -1,11 +1,37 @@
-# RFC-NNNN — Title
+---
+id: uc-rust:RFC-NNNN
+type: RFC
+schema_version: 1
+content_version: 0.1.0
+title: Title
+summary: Concise description of the proposed change.
+status: Draft
+owners:
+  - role: decision-owner
+authors:
+  - role: author
+created_at: YYYY-MM-DD
+updated_at: YYYY-MM-DD
+scope: Concern governed by this proposal.
+non_goals: []
+provenance:
+  - kind: issue
+    locator: https://github.com/nomed/uc-rust/issues/NN
+relations: []
+review:
+  required_roles: [architecture]
+  reviewers: []
+  disposition: pending
+lifecycle_events:
+  - from: null
+    to: Draft
+    at: YYYY-MM-DD
+    actor: author
+    rationale: Initial draft.
+    content_version: 0.1.0
+---
 
-- Status: draft
-- Authors: names or roles
-- Created: YYYY-MM-DD
-- Governing issue: #NN
-- Decision owner: human role
-- Target milestone: Mx
+# RFC-NNNN — Title
 
 ## Summary
 
@@ -45,4 +71,4 @@ List decisions that still block acceptance.
 
 ## Acceptance criteria
 
-List objective conditions required before the RFC may be accepted.
+List objective conditions required before the RFC may be accepted. Acceptance remains an attributable human lifecycle event.

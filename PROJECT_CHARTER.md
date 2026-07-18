@@ -1,6 +1,6 @@
 # UC Rust Project Charter
 
-- Status: Draft for Project Ready review
+- Status: Reviewable for acceptance
 - Governing issue: #11
 - Normative knowledge source: `nomed/uc-bok`
 - Reference implementation: `nomed/uc-rust`
@@ -22,6 +22,12 @@ UC-BoK defines the language, concepts, capabilities, business objects, relations
 
 Market evidence reinforces the need for modular POS/touchpoints, API-first and headless delivery, mobility, OMS integration, smart checkout/IoT extension, edge resilience, AI-assisted workflows and strong disaster recovery. UC Rust treats these as evidence to prioritize and validate architecture, not as an instruction to implement every market feature immediately.
 
+## Target segment
+
+The 1.0 reference implementation targets multi-location retailers that require a coherent basket-to-order journey across central and store-edge execution. It is especially relevant where stores must continue selected operations during WAN degradation and where platform teams need replaceable integrations, fleet governance and measurable cost-to-serve.
+
+The project is not limited to a grocery, fashion or hospitality implementation. Sector-specific fiscal, payment, device and workflow differences enter through explicit capability and provider boundaries rather than becoming implicit core semantics.
+
 ## Target users and stakeholders
 
 - Retail platform architects and engineering teams.
@@ -37,7 +43,7 @@ Market evidence reinforces the need for modular POS/touchpoints, API-first and h
 UC Rust is a distributed Unified Commerce platform and reference implementation in which:
 
 - business behavior has one canonical implementation;
-- central and edge profiles reuse the same domain and application operations;
+- central and edge profiles reuse the same domain and application Operations;
 - every external interface is versioned, documented and example-backed;
 - infrastructure providers remain replaceable adapters;
 - selected retail processes remain safe during WAN outage;
@@ -46,9 +52,19 @@ UC Rust is a distributed Unified Commerce platform and reference implementation 
 - every quality claim is enforced and evidenced;
 - implemented concepts are traceable to a declared UC-BoK revision.
 
+## Value proposition
+
+UC Rust demonstrates that a Unified Commerce platform can combine semantic integrity, operational resilience and provider replaceability without duplicating business logic across channels or deployments. Its value is the combination of:
+
+1. executable validation of UC-BoK;
+2. one-place business behavior across adapters and runtime profiles;
+3. explicit central/edge authority and convergence guarantees;
+4. measurable security, reliability, performance and economics;
+5. governed extensibility without vendor leakage into the core.
+
 ## Initial delivery strategy
 
-The first executable vertical path is Basket, followed by persistent Basket, commercial calculation and Checkout-to-Order. The foundation must be strong enough to support later touchpoints and capabilities without rewriting business rules.
+The first executable vertical path is Basket, followed by persistent Basket, commercial calculation and Checkout-to-Order. The foundation must support later touchpoints and capabilities without rewriting business rules.
 
 Initial profiles:
 
@@ -63,65 +79,90 @@ Candidate later profiles:
 - Self-checkout or smart-checkout adapter.
 - SoftPOS-oriented profile.
 
-## In scope
+## In scope for 1.0
 
 - Unified Commerce capability and domain modelling aligned with UC-BoK.
 - Basket, pricing/commercial calculation, checkout and order foundations.
-- REST, gRPC, messaging, worker, job and CLI adapters over one application core.
-- PostgreSQL, SQLite and future persistence adapters behind stable ports.
-- Replaceable cache, object storage and authorization adapters.
-- OAuth 2.0/OpenID Connect authentication and Zanzibar-style authorization.
-- Central and edge deployment profiles with explicit offline capability classification.
+- REST and at least one additional delivery adapter over one application core; other adapter forms remain governed extension targets.
+- PostgreSQL and SQLite persistence behind stable ports where required by the proving journey.
+- Replaceable authorization, payment, fiscal and infrastructure provider boundaries.
+- OAuth 2.0/OpenID Connect authentication and Zanzibar-compatible authorization.
+- Central and store-edge deployment profiles with explicit offline capability classification.
 - Durable synchronization, outbox/inbox, reconciliation and compatibility negotiation.
 - Edge fleet desired/actual state, inventory, signed updates, monitoring and rollback.
-- Complete tests, rustdoc, fixtures, coverage, security, reliability and performance evidence.
+- Tests, rustdoc, fixtures, security, reliability, performance and economic evidence.
 - Cross-repository traceability and feedback with UC-BoK.
-- Extension points for devices, payment, OMS, ERP, CRM, loyalty, inventory and AI capabilities.
+- Governed extension points for devices and enterprise integrations.
 
-## Out of scope for the initial implementation
+## Explicit non-goals for 1.0
 
 - Reimplementing a complete ERP, CRM, WMS or enterprise OMS.
-- Implementing every UC-BoK capability before the first production-grade vertical slice.
-- Building a full associate superapp UI before stable domain and API contracts.
-- Owning card data or payment processing that should remain within certified PSP boundaries.
-- Generic claims of offline payment without provider-specific approval and tests.
+- Implementing every UC-BoK capability before the first production-grade journey.
+- Building a complete associate or customer superapp UI.
+- Owning card data or payment processing that belongs inside certified PSP boundaries.
+- Claiming generic offline payment support without method-, provider- and country-specific evidence.
 - Mandatory microservice decomposition; modularity and replaceability matter more than service count.
 - Vendor-specific business semantics in the domain core.
-- Uncontrolled plugins that can bypass application, security or quality boundaries.
+- Uncontrolled plugins that bypass application, security or quality boundaries.
 - AI autonomy without human oversight, measurable evaluation, audit and safe fallback.
-- Retail media, influencer attribution and service/repair management in the initial roadmap.
+- Retail media, influencer attribution, service/repair management, full clienteling and full enterprise fulfillment implementation.
+- A custom async executor, consensus system, general-purpose dependency injection container or mandatory broker.
 
 ## Build-versus-integrate principles
 
 Build when the capability represents core Unified Commerce semantics, canonical business behavior, distributed consistency or platform governance. Integrate when a mature specialist system owns the capability, including payment processing, external identity providers, specialized AI, devices, tax/fiscal systems or enterprise applications.
 
-Every integration must use a stable capability-oriented port and contract tests. Provider types must not leak into the application core.
+Every integration must use a stable capability-oriented port and contract tests. Provider types must not leak into the application core. Integrating a capability does not remove the obligation to define authority, failure behavior, compatibility and evidence.
+
+## Market evidence dispositions
+
+The detailed assessment is `.context/research/2025-market-guide-impact-assessment.md`. The charter adopts these explicit dispositions:
+
+| Market concern | Charter disposition |
+|---|---|
+| Modular POS and same source across endpoints | Adopted as an architectural principle. |
+| API-first/headless | Adopted; channels reuse canonical Operations rather than duplicate semantics. |
+| Central and edge execution | Adopted and required for the 1.0 proving journey. |
+| Mobile/associate experience | Candidate runtime/touchpoint; full superapp deferred. |
+| OMS and flexible fulfillment | Integrated through contracts; complete enterprise OMS deferred. |
+| Clienteling and loyalty | Planned extension capabilities; not required for the 1.0 golden path. |
+| Smart checkout, RFID and IoT | Governed device/integration extensions; deferred as core implementations. |
+| Offline payment | Provider-, method- and country-specific integration only; no generic guarantee. |
+| Analytics and dashboards | Read-model and operational evidence concern; not a source of domain authority. |
+| Embedded/agentic AI | Integrated under human oversight, evaluation, audit and fallback controls. |
+| Development toolkit/extensibility | Adopted as governed contracts; arbitrary runtime plugins rejected. |
+| SoftPOS | Candidate profile, not a 1.0 commitment. |
+| Retail media and influencer tracking | Deferred. |
+| Disaster recovery, security and privacy | Required product qualities. |
+
+No external market feature becomes scope without an owner, rationale, release, dependencies and measurable acceptance evidence.
 
 ## Quality outcomes
 
 Project Ready requires every P0 quality attribute to have:
 
-- measurable invariant or budget;
-- governing ADR/RFC and issue;
-- automated enforcement;
+- a measurable invariant or budget;
+- a governing ADR/RFC and issue;
+- automated enforcement where feasible;
 - reproducible evidence;
-- accountable owner;
+- an accountable owner;
 - explicit status and governed exceptions.
 
-No production Rust behavior is accepted without complete line and branch coverage, meaningful tests and current documentation.
+No production Rust behavior is accepted without meaningful line and branch coverage, current documentation and evidence proportionate to its risk. Coverage percentage is a guardrail, not a substitute for test quality.
 
 ## Product success measures
 
 - 100% of implemented capabilities and public contracts map to stable UC-BoK identifiers or an accepted divergence.
-- 100% of production Rust lines and branches are covered by meaningful tests.
-- Zero duplicated business operation implementations across delivery profiles.
+- 100% of production Rust lines and branches are covered by meaningful tests, subject only to an explicit accepted exception.
+- Zero duplicated business Operation implementations across delivery profiles.
 - Zero prohibited infrastructure dependencies in domain/application crates.
-- Zero lost or duplicated business effects in supported synchronization failure scenarios.
+- Zero lost or silently duplicated business effects in supported synchronization failure scenarios.
 - Zero silent conflict resolution.
 - 100% of managed edge nodes are uniquely identified, inventoried and compatibility-validated.
 - 100% of released artifacts are immutable, signed and traceable to a release.
-- Critical operations meet approved latency, CPU, memory and database budgets.
+- Critical Operations meet accepted latency, CPU, memory and database budgets.
 - Backup, restore, rollback and WAN-partition evidence is reproducible.
+- The 1.0 basket-to-order proving journey runs through central and store-edge profiles with declared offline behavior and accepted evidence.
 
 ## Assumptions and constraints
 
@@ -131,7 +172,8 @@ No production Rust behavior is accepted without complete line and branch coverag
 - UC-BoK evolves independently and can introduce adoption work.
 - Rust is the implementation language; UC-BoK remains language-neutral.
 - Security and tenant isolation are structural requirements.
-- Performance must be measured against representative workloads.
+- Performance and cost must be measured against representative workloads.
+- Provider replaceability does not imply pretending that all providers offer equivalent guarantees.
 
 ## Primary risks
 
@@ -139,12 +181,29 @@ No production Rust behavior is accepted without complete line and branch coverag
 - Treating distributed edge state as a cache problem rather than an authority and convergence problem.
 - Allowing market terminology or vendor features to distort UC-BoK semantics.
 - Achieving nominal coverage through weak tests.
-- Creating an abstraction that hides essential provider capability differences.
-- Allowing fleet deployment, migration or authorization versions to drift independently without compatibility validation.
+- Creating abstractions that hide essential provider capability differences.
+- Allowing fleet deployment, migration or authorization versions to drift without compatibility validation.
+- Building a generic platform framework not justified by the 1.0 proving journey.
+
+## Terminology
+
+Project terminology is defined in `docs/product/glossary.md`. UC-BoK remains normative; provisional terms and mappings must be reconciled through #38 rather than silently promoted to specification status.
+
+## Change control
+
+Material scope changes require:
+
+- impact assessment against the 1.0 proving journey and release train;
+- explicit adopted, integrated, planned, deferred or rejected disposition;
+- UC-BoK and Economics by Design impact assessment;
+- updates to roadmap, dependencies, budgets and evidence obligations;
+- accountable acceptance or a time-bounded waiver.
 
 ## Governing documents
 
-- `.context/manifest.yaml`
+- `docs/product/glossary.md`
+- `docs/roadmap/uc-rust-1.0-blueprint.md`
+- `docs/roadmap/uc-rust-1.0-scope-and-traceability.md`
 - `.context/quality-attributes/system-quality-model.md`
 - `.context/research/2025-market-guide-impact-assessment.md`
 - `governance/uc-bok-traceability.yaml`

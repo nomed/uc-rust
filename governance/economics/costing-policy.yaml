@@ -1,0 +1,72 @@
+schema_version: 1
+policy_id: uc-rust-ebd-crawl-v1
+status: defined
+currency: EUR
+normative_source:
+  repository: nomed/ebd-bok
+  concepts:
+    - Costing Policy
+    - Economic Metrics Repository
+    - Economic Observability
+    - Cost-to-Serve
+classification:
+  measured:
+    definition: Directly observed physical consumption or billed monetary cost.
+  attributed:
+    definition: Cost causally assigned through a declared measurable consumption driver.
+  allocated:
+    definition: Shared cost distributed through an explicit versioned allocation rule.
+  estimated:
+    definition: Modelled value used before sufficient observed evidence exists.
+maturity:
+  current: Crawl
+  included_costs:
+    - direct edge compute
+    - direct central compute
+    - database operations
+    - storage written and retained
+    - network transfer
+    - directly metered external calls
+  excluded_until_walk:
+    - shared SaaS platforms
+    - shared observability platforms
+    - licence pools
+    - shared control-plane infrastructure
+  excluded_until_run:
+    - support labour
+    - incident management
+    - maintenance labour
+    - customer onboarding
+    - fleet field operations
+    - attributable human capital
+required_provenance:
+  - source identifier
+  - observation period
+  - software revision
+  - deployment profile
+  - rate-card revision
+  - costing-policy revision
+  - confidence level
+  - measured attributed allocated or estimated classification
+rules:
+  - Direct technical cost must never be labelled full Cost-to-Serve.
+  - Monetary values without a rate-card revision are estimates and cannot enforce absolute economic gates.
+  - Shared cost is never divided evenly when a causal driver is available.
+  - Failed attempts, retries, duplicate deliveries and observability overhead are included and separately visible.
+  - Economic telemetry must be tenant-safe and must not expose transaction payload or personal data.
+  - A costing-policy change does not rewrite historical observations; results retain the policy revision used.
+initial_regression_gates:
+  storage_bytes_per_unit_max_regression_percent: 5
+  wan_bytes_per_unit_max_regression_percent: 5
+  cpu_time_per_unit_max_regression_percent: 10
+  database_writes_per_unit_unapproved_increase: 0
+  normal_duplicate_amplification_max: 1.02
+  recovery_throughput_regression_percent: 5
+absolute_cost_gates:
+  status: deferred
+  activation_conditions:
+    - accepted representative workload
+    - versioned rate cards
+    - reproducible measurement harness
+    - economic owner approval
+    - baseline evidence accepted by Project Ready or a later economic gate

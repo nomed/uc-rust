@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UC Rust Work Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "work_id", "source", "operation", "scope", "correlation", "execution", "placement", "created_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "work_id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "source_id", "source_revision"],
+      "properties": {
+        "kind": {"enum": ["schedule", "queue", "event", "operator", "reconciliation", "internal"]},
+        "source_id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "source_revision": {"type": "string", "minLength": 1, "maxLength": 100},
+        "nominal_fire_time": {"type": "string", "format": "date-time"},
+        "delivery_id": {"type": "string", "maxLength": 300}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "semantic_version"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "semantic_version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "input": {},
+        "input_reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "locator", "digest"],
+          "properties": {
+            "kind": {"type": "string", "minLength": 1, "maxLength": 100},
+            "locator": {"type": "string", "minLength": 1, "maxLength": 1000},
+            "digest": {"type": "string", "minLength": 8, "maxLength": 200}
+          }
+        }
+      },
+      "oneOf": [{"required": ["input"]}, {"required": ["input_reference"]}]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenant_id", "runtime_profile"],
+      "properties": {
+        "tenant_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "legal_entity_id": {"type": "string", "maxLength": 200},
+        "location_id": {"type": "string", "maxLength": 200},
+        "runtime_profile": {"type": "string", "minLength": 1, "maxLength": 100}
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["correlation_id"],
+      "properties": {
+        "correlation_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "causation_id": {"type": "string", "maxLength": 200},
+        "parent_work_id": {"type": "string", "maxLength": 200}
+      }
+    },
+    "priority": {"type": "integer", "minimum": 0, "maximum": 1000},
+    "partition_key": {"type": "string", "maxLength": 300},
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["required", "optional", "provider_scoped", "not_applicable"]},
+        "key": {"type": "string", "maxLength": 500},
+        "scope": {"type": "string", "maxLength": 300}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_attempts", "max_total_age_seconds", "attempt_timeout_seconds", "backoff"],
+      "properties": {
+        "admission_deadline": {"type": "string", "format": "date-time"},
+        "max_attempts": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "max_total_age_seconds": {"type": "integer", "minimum": 1},
+        "attempt_timeout_seconds": {"type": "integer", "minimum": 1},
+        "backoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "initial_seconds", "maximum_seconds", "jitter"],
+          "properties": {
+            "kind": {"enum": ["fixed", "linear", "exponential"]},
+            "initial_seconds": {"type": "integer", "minimum": 0},
+            "maximum_seconds": {"type": "integer", "minimum": 0},
+            "jitter": {"type": "boolean"}
+          }
+        },
+        "cancellation": {"enum": ["cooperative", "not_cancellable"]},
+        "indeterminate_policy": {"enum": ["reconcile", "operator_review", "fail_closed"]}
+      }
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy"],
+      "properties": {
+        "policy": {"enum": ["central_only", "edge_only", "prefer_central", "prefer_edge", "either_single_owner"]},
+        "eligible_profiles": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 100}}
+      }
+    },
+    "captured_revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "configuration": {"type": "string", "maxLength": 200},
+        "binding": {"type": "string", "maxLength": 200},
+        "schedule": {"type": "string", "maxLength": 200}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

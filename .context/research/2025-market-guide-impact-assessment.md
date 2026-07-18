@@ -1,75 +1,108 @@
 # 2025 Market Guide impact assessment
 
+- Status: Reviewable for acceptance
+- Governing issue: #41
+- Governing decision: ADR-0031
 - Source repository: `nomed/uc-bok`
 - Source path: `refs/2025_Market Guide for Unified Commerce Platforms Anchored by AI-Enabled POS for Tier 2 Retailers.md`
 - Source revision: `9f0e1700cb7dfe49d5d684bc64fc76d1042054b1`
 - Assessment date: 2026-07-18
-- Related UC Rust issues: #11, #12, #29, #32, #38, #39, #40, #41
+- Disposition completed: 2026-07-19
+- Related UC Rust issues: #11, #12, #29, #32, #38, #39, #40, #41, #53
 
 ## Purpose
 
-Use the market research as external evidence for product and architecture decisions without treating every market feature as a mandatory implementation requirement. UC-BoK remains the normative semantic source; UC Rust remains the reference implementation and executable validation environment.
+Use market research as external evidence for product and architecture decisions without treating every listed feature as a mandatory implementation requirement. UC-BoK remains the normative semantic source; UC Rust remains the reference implementation and executable validation environment; the accepted Project Charter governs product scope.
+
+## Disposition vocabulary
+
+Each material concern is classified as one of:
+
+- `adopted` — required architecture or product characteristic;
+- `integrated` — supplied through a governed external realization, adapter or read-model surface;
+- `planned` — accepted future capability with explicit roadmap ownership;
+- `deferred` — intentionally outside the current release scope;
+- `rejected` — inconsistent with project principles or unsupported by sufficient evidence.
+
+Absence of a disposition never implies scope.
 
 ## Confirmed structural directions
 
 The guide reinforces the following UC Rust decisions:
 
 1. POS is one modular intelligent node in a broader Unified Commerce platform rather than the owner of all commerce logic.
-2. Commerce capabilities must be API-first, composable and headless so multiple touchpoints can reuse the same semantic operations.
-3. The same source code and business behavior should be reused across fixed, mobile, self-checkout, central and edge endpoints.
-4. Central orchestration must coexist with resilient edge execution and offline operation.
-5. OMS, customer, loyalty, inventory, pricing, promotion and analytics capabilities must interoperate through explicit contracts.
-6. Mobility is a first-class execution surface for associates and customers.
-7. Smart checkout and IoT/RFID integration are important extension points rather than reasons to move business logic into device-specific code.
-8. AI should be a platform capability with human oversight, evidence, security and performance controls—not scattered opaque automation.
-9. Disaster recovery, security, privacy, availability and performance are product requirements, not infrastructure afterthoughts.
+2. Commerce capabilities are API-first, composable and headless so multiple touchpoints reuse the same canonical Operations.
+3. Fixed, mobile, self-checkout, central, edge, worker and CLI surfaces reuse one canonical business behavior.
+4. Central orchestration coexists with resilient edge execution and explicitly governed offline operation.
+5. OMS, customer, loyalty, inventory, pricing, promotion and analytics interoperate through explicit contracts and Capability Realizations.
+6. Mobility is a first-class candidate execution surface for associates and customers, without making a superapp part of the application core.
+7. Smart checkout and IoT/RFID/CV are governed extension and integration points rather than reasons to move business logic into device-specific code.
+8. AI is a governed capability with human oversight, evidence, security, audit and performance controls.
+9. Disaster recovery, security, privacy, availability and performance are product requirements rather than infrastructure afterthoughts.
 10. Retail-operational health is more important than process liveness alone.
 
-## Capability impacts
+## Final market dispositions
 
-| Market concern | UC Rust disposition | Governing work |
-|---|---|---|
-| Modular POS / POS as a node | Adopted architectural principle | ADR-0005, #22 |
-| Same source code across endpoints | Adopted architectural principle | ADR-0005, ADR-0015, #22, #39 |
-| API-first and headless | Required contract and adapter principle | #12, #22, #30 |
-| Mobile POS and associate mobility | Candidate first-class delivery profile | #11, #12, #41 |
-| OMS and flexible fulfillment | Core future capability, not part of first Basket slice | #9, roadmap |
-| Clienteling and loyalty | Planned UC capability; offline guarantees must be explicit | #12, #39, #41 |
-| Smart checkout / RFID / IoT | Extension and integration capability; device adapters remain replaceable | #12, #24, #41 |
-| Offline payment | Capability-specific, risk-governed and provider-dependent | #31, #36, #39, #41 |
-| Analytics and real-time dashboards | Read-model/observability concern; not domain authority | #12, #28, #32, #41 |
-| Embedded and agentic AI | Platform capability with human-in-the-loop and evidence requirements | #16, #28, #29, #41 |
-| Development toolkit / extensibility | Requires governed extension model, SDK and contract boundaries | #12, #30, #41 |
-| Disaster recovery and resilience | Already P0 | #32 |
-| Security/privacy/payment isolation | Already P0; payment data should remain outside core where possible | #16, #34, #36 |
-| Retail media and influencer tracking | Not initial core scope; evaluate later through UC-BoK and product roadmap | #11, #38, #41 |
-| SoftPOS | Candidate deployment profile/use case, not assumed core | #11, #12, #40, #41 |
+| Market concern | Disposition | 1.0 position | Governing evidence |
+|---|---|---|---|
+| Modular POS / POS as a node | adopted | structural architecture principle | Project Charter, target architecture, ADR-0021 |
+| Same source and behavior across endpoints | adopted | mandatory canonical Operation reuse | ADR-0021, ADR-0027, ADR-0028 |
+| API-first and headless | adopted | required contract and adapter principle | target architecture, ADR-0028 |
+| Central and edge execution | adopted | required 1.0 proving journey | Project Charter, target architecture |
+| Mobile POS and associate mobility | planned | candidate runtime/touchpoint; full superapp deferred | Project Charter, #53 |
+| OMS and flexible fulfillment | integrated | explicit contracts and delegated realization; full enterprise OMS deferred | Project Charter, ADR-0024 |
+| Clienteling and loyalty | planned | governed capabilities outside the 1.0 golden path | Project Charter, #53 |
+| Smart checkout / RFID / CV / IoT | integrated | replaceable device and extension adapters | ADR-0029, target architecture |
+| Offline payment | integrated | provider-, method- and country-specific only | Project Charter, ADR-0024 |
+| Analytics and real-time dashboards | integrated | read-model and operational evidence concern; never transaction authority | ADR-0026, target architecture |
+| Embedded and agentic AI | integrated | human oversight, evaluation, audit and safe fallback | Project Charter, target architecture |
+| Development toolkit / extensibility | adopted | governed registration and public contracts | ADR-0029 |
+| SoftPOS | deferred | candidate profile; not a 1.0 commitment | Project Charter, #53 |
+| Retail media and influencer tracking | deferred | outside the initial reference scope | Project Charter |
+| Disaster recovery and resilience | adopted | P0 quality obligation | Project Charter, quality model |
+| Security, privacy and payment isolation | adopted | P0 structural boundary | Project Charter, target architecture |
 
-## Required project decisions
+## Roadmap admission rule
 
-The Project Charter and Target Architecture must explicitly decide:
+No market feature enters the roadmap without:
 
-- target retail segments for the reference implementation;
-- first supported touchpoints and deployment profiles;
-- which capabilities are implemented, integrated, demonstrated or intentionally deferred;
-- extension model for retailer/vendor-built capabilities;
-- AI capability boundaries and human-approval requirements;
-- payment responsibility boundary and offline-payment risk model;
-- mobility and associate-experience scope;
-- relationship between global source of truth, central orchestration and edge authority.
+1. accountable owner;
+2. rationale and target release or explicit deferral horizon;
+3. dependencies and authority boundary;
+4. UC-BoK mapping or explicit provisional status;
+5. measurable acceptance evidence;
+6. security, compatibility, offline, performance and economic implications.
 
-## Non-goals derived from the assessment
+A disposition of `integrated` does not remove the need to define canonical semantics, provider authority, failure behavior, version compatibility, idempotency, fallback, observability or cost attribution.
+
+## Explicit non-goals and rejected interpretations
 
 - UC Rust will not implement every feature listed by a market analyst before delivering a coherent vertical slice.
-- MACH will not be interpreted as mandatory microservice decomposition.
-- AI will not be inserted into a workflow without measurable business value, reproducible evaluation and safe fallback.
-- Headless will not mean semantic duplication across channels.
-- Offline payment will not be claimed generically; each provider and payment method requires explicit evidence.
-- A superapp UI is not part of the domain or application core.
+- Market research does not override UC-BoK normative meaning.
+- MACH is not interpreted as mandatory microservice decomposition.
+- AI is not inserted into a workflow without measurable value, reproducible evaluation, authorization, audit and safe fallback.
+- Headless does not mean semantic duplication across channels.
+- “Same source” means one canonical behavior, not necessarily one deployment artifact for every environment.
+- Offline payment is never claimed generically.
+- A customer or associate superapp UI is not part of the domain/application core.
+- Device, provider or analyst terminology cannot leak into canonical business contracts without an accepted semantic decision.
 
-## Evidence and follow-up
+## Traceability position
 
-- Create and maintain #41 as the market-evidence disposition issue.
-- Reference this assessment from the charter and target architecture.
-- Map accepted UC-BoK identifiers into `governance/uc-bok-traceability.yaml` once UC-BoK dispositions are stable.
-- Reassess on a new guide revision or material UC-BoK change.
+Stable UC-BoK mapping is governed by ADR-0030. Market concerns map to typed UC-BoK identifiers only when they resolve against the pinned normative manifest. Provisional labels remain visibly provisional and cannot be presented as stable specification identifiers.
+
+This assessment records product disposition, not implementation status. `adopted`, `integrated` or `planned` must not be translated into `implemented` without qualifying code, contract and test evidence.
+
+## Reassessment rule
+
+The assessed source revision is immutable for this assessment. A new Market Guide revision, material external research update or material UC-BoK change creates a new impact assessment and explicit adoption decision; it does not silently replace this baseline.
+
+## Completion evidence
+
+- Project Charter explicitly references this assessment and records in-scope and non-goal decisions.
+- The accepted target architecture contains the required structural impacts.
+- The 1.0 roadmap distinguishes adopted, integrated, planned and deferred work.
+- ADR-0030 establishes stable typed UC-BoK traceability rules.
+- ADR-0031 governs market-evidence disposition and future reassessment.
+
+The discovery and architectural disposition work is complete. Executable proof for individual capabilities remains governed by their release gates and cannot be inferred from this assessment alone.

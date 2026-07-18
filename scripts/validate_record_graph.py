@@ -66,7 +66,7 @@ def load_authorities(path: Path) -> set[str]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise SystemExit("namespace authority registry must be a mapping")
-    authorities = data.get("authorities", data)
+    authorities = data.get("namespaces", data.get("authorities", data))
     if isinstance(authorities, dict):
         return set(authorities)
     if isinstance(authorities, list):

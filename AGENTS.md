@@ -82,6 +82,30 @@ When sources conflict, follow the precedence declared in `.context/manifest.yaml
 - Destructive schema changes require a reviewed compatibility plan.
 - Database patches must not hide application business logic.
 
+## Testing and coverage
+
+- Test-driven development using red, green and refactor is the default workflow for production behavior.
+- Production Rust code must maintain 100% line and branch coverage.
+- Coverage is mandatory but never replaces meaningful assertions, negative cases, boundary cases, property tests, contract tests, integration tests and end-to-end verification.
+- Every business rule, application operation, adapter behavior, serializer, error branch and migration path requires appropriate tests.
+- Generated code or genuinely unreachable defensive paths may be excluded only through an explicit, reviewed and narrowly scoped policy.
+- Critical commercial and lifecycle rules should use mutation testing or equivalent evidence when practical.
+- Tests and fixtures must be deterministic, isolated and free from timing, ordering or external-environment assumptions.
+- A change is not complete if it adds production behavior without corresponding tests.
+
+## Documentation and executable examples
+
+- Production modules, traits, structs, enums, functions, methods and non-obvious fields require clear and current rustdoc.
+- Documentation must explain purpose, invariants, inputs, outputs, errors, side effects, transaction behavior, idempotency, concurrency assumptions and security implications where relevant.
+- Missing required documentation must fail CI.
+- Every external DTO and serialized contract requires canonical, realistic and human-readable examples.
+- Prefer pretty-printed versioned fixture files for JSON payloads and equivalent readable formats for other serializations.
+- Reuse canonical fixtures in serialization/deserialization tests, adapter tests, rustdoc, OpenAPI or other contract documentation and compatibility tests where practical.
+- CI must parse and validate fixture files so examples cannot silently become stale.
+- Round-trip tests should deserialize canonical input, exercise the relevant behavior, serialize output and validate semantic content.
+- Snapshot or golden tests may support readability but must not replace explicit assertions for important behavior.
+- Contract and behavior changes require documentation and fixture updates in the same change.
+
 ## Engineering rules
 
 - Keep `uc-domain` free from HTTP, database, messaging and framework dependencies.
@@ -125,8 +149,8 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-When applicable, also run context validation, architecture tests, adapter contract suites, migration clean-install tests and supported upgrade-path tests.
+When applicable, also run rustdoc linting, 100% line/branch coverage, context validation, architecture tests, adapter contract suites, fixture round-trip tests, migration clean-install tests and supported upgrade-path tests.
 
 ## Architecture changes
 
-Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.
+Create or update a decision record when changing boundaries, persistence strategy, cache or storage contracts, event delivery, public contracts, security model, deployment topology, release model, application operation ownership, testing policy, documentation policy, database migration policy or agentic operating model. Substantial or high-cost changes require an RFC before implementation.

@@ -2,7 +2,7 @@
 id: uc-rust:CR-0001
 type: CR
 schema_version: 1
-content_version: 0.1.0
+content_version: 0.2.0
 title: Basket Capability
 summary: Implementation-independent basket capability across channels and runtime profiles.
 status: Proposed
@@ -15,8 +15,8 @@ provenance:
   - {kind: issue, locator: https://github.com/nomed/uc-rust/issues/56}
   - {kind: uc-bok, locator: uc-bok:CAP-COMMERCE-BASKET}
 relations:
-  - {type: realizes, target: uc-bok:CAP-COMMERCE-BASKET}
-  - {type: depends_on, target: uc-rust:RRR-0001}
+  - {type: realizes_concept, target: uc-bok:CAP-COMMERCE-BASKET}
+  - {type: depends_on, target: uc-rust:RRR-0001, scope: operation invocation mechanics}
 review:
   required_roles: [domain-architecture, product-analysis]
   reviewers: []
@@ -54,7 +54,7 @@ Profiles declare available operations, permitted data/rule staleness, durability
 Authorize by actor/channel/tenant; minimize customer data; audit overrides; validate untrusted totals. Evidence must support cost and quality budgets for mutation, recovery, availability, duplicates, reconciliation and audit completeness. Thresholds belong to ER/QAR records.
 
 ## Acceptance evidence
-Envelope/schema validation; UC-BoK traceability; at least one RRR realization; invariant tests; one offline reconciliation scenario; inclusion or explicit deferral in a Release Record.
+Envelope/schema validation; UC-BoK traceability; at least one RRR implementation relation; invariant tests; one offline reconciliation scenario; inclusion or explicit deferral in a Release Record.
 
 ## ADR-0022 validation
 Confirms that capability semantics, runtime mechanics and evidence can be separated without standalone Operation, Event, Policy or Deployment record families.

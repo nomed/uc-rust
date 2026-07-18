@@ -2,7 +2,7 @@
 id: uc-rust:RRR-0001
 type: RRR
 schema_version: 1
-content_version: 0.1.0
+content_version: 0.2.0
 title: Operation Invocation
 summary: Reusable runtime semantics for operation invocation.
 status: Proposed
@@ -14,7 +14,7 @@ non_goals: [Business meaning of a specific operation, Mandatory protocol/framewo
 provenance:
   - {kind: issue, locator: https://github.com/nomed/uc-rust/issues/56}
 relations:
-  - {type: realizes_runtime_for, target: uc-rust:CR-0001}
+  - {type: implements, target: uc-rust:CR-0001, scope: operation invocation mechanics}
 review:
   required_roles: [runtime-architecture, reliability, security]
   reviewers: []
@@ -53,7 +53,7 @@ Synchronous local/remote, asynchronous queued, edge/offline deferred, scheduled/
 Record identities, causation, profile, admission, timestamps, terminal classification, retry/deduplication, trace, implementation and environment fingerprint. Validate authentication, record authorization authority, control replay, protect payload integrity, redact sensitive telemetry and constrain exhaustion.
 
 ## Acceptance evidence
-Schema validation; duplicate/idempotency tests; deadline/cancellation tests; indeterminate-outcome handling; synchronous and deferred realizations; stable errors; trace/audit correlation; use by at least two operations or capabilities.
+Schema validation; duplicate/idempotency tests; deadline/cancellation tests; indeterminate-outcome handling; synchronous and deferred realizations; stable errors; trace/audit correlation; implementation relation to at least two operations or capabilities.
 
 ## ADR-0022 validation
 Confirms Runtime Responsibility Record as a distinct family while Operation remains a concept in capability/interface models.

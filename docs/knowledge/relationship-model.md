@@ -1,84 +1,92 @@
 # Typed Relationship Model
 
-- Status: Draft
-- Governing issue: to be assigned
+- Status: Complete
+- Governing issue: #58
+- Governing architecture work: #64, #67
 
 ## Purpose
 
-Relationships are semantic edges, not generic hyperlinks. Each edge has a controlled type, direction, source, target, rationale and optional validity interval.
+Relationships are semantic, directional architecture assertions rather than generic hyperlinks. Their authoritative vocabulary, source/target constraints, temporal semantics, provenance and inverse policy are defined in `docs/architecture/relationship-model.md`.
 
-## Core relation vocabulary
+This document is the knowledge-foundation entry point and binds that controlled vocabulary to repository-level graph integrity and query requirements.
 
-### Governance and proposal
+## Canonical relation authority
 
-- `proposes`: RFC -> record or change
-- `decides`: ADR -> governed subject
-- `supersedes`: record -> record
-- `amends`: record -> record
-- `waives`: decision -> constraint/gate
+A relation is authoritative only when declared in the source record's canonical envelope. The source namespace owns the assertion. Incoming relations do not imply endorsement by the target authority.
 
-### Architecture and capability
+Derived reverse edges, confidence scores, transitive closure and reconciliation findings are projections. Yukh may compute them but cannot silently write them back as normative relations.
 
-- `defines`: record -> concept or contract
-- `requires`: record -> record/capability/runtime
-- `constrains`: QAR/SR/ADR -> subject
-- `depends_on`: subject -> prerequisite
-- `conflicts_with`: record -> record
-- `extends`: capability/interface -> base subject
+## Controlled vocabulary
 
-### Runtime and implementation
+The UC Rust 1.0 vocabulary is:
 
-- `realized_by`: capability/runtime/interface -> implementation artifact
-- `invoked_by`: Operation -> adapter/runtime path
-- `deployed_in`: component -> runtime profile
-- `persists`: operation/capability -> data record
-- `publishes` / `consumes`: subject -> event/interface record
+- `references`
+- `realizes_concept`
+- `depends_on`
+- `constrains`
+- `implements`
+- `exposes`
+- `uses_data`
+- `satisfies`
+- `governed_by`
+- `included_in`
+- `supersedes`
+- `deprecates`
+- `conflicts_with`
+- `waives`
 
-### Evidence and verification
+Generic `related_to`, `link`, `association`, `see_also` and hand-authored inverse names are forbidden.
 
-- `implemented_by`: record -> code/PR/release evidence
-- `verified_by`: record -> test/benchmark/operational evidence
-- `measured_by`: ER/QAR/capability -> measurement evidence
-- `violated_by`: constraint -> evidence/incident
-- `derived_from`: record -> source evidence or UC-BoK concept
+The definitive semantics and family matrix remain in `docs/architecture/relationship-model.md`; this file must not create a competing vocabulary.
 
-### Planning and release
+## Integrity rules
 
-- `included_in`: record/capability -> release record
-- `blocks`: subject -> subject
-- `delivers`: issue/release -> record/capability
-- `traces_to`: project record -> UC-BoK/EbD/external record
+Repository-level graph validation enforces:
 
-## Relation constraints
+- unique canonical identifiers;
+- resolvable local `uc-rust:` targets;
+- declared external namespace authorities;
+- no self-relations or duplicate edges;
+- acyclic `supersedes` relations;
+- acyclic `depends_on` relations unless explicitly justified under the governed exception rule;
+- no projection-only inverse relations in normative records;
+- explicit findings for isolated or orphaned records;
+- no inferred edge satisfying a required normative trace.
 
-- Relations are directed even when a reverse view can be inferred.
-- `supersedes` must not form cycles.
-- `depends_on` must be acyclic within a release critical path unless explicitly classified as mutual design coupling.
-- `verified_by` targets immutable or versioned evidence.
-- A generic `related_to` edge is forbidden in normative records; the author must select or propose a semantic relation.
-- Cross-repository targets use globally resolvable identifiers.
+The complete rules, resolution classes and result contract are defined in `docs/knowledge/graph-views-and-integrity.md`.
 
-## Edge metadata
+## Required graph views
 
-Each relation may include:
+The model supports the following deterministic projections:
 
-- rationale;
-- provenance;
-- confidence;
-- valid-from / valid-until;
-- release scope;
-- conformance status;
-- review status.
-
-## Graph views
-
-The same model must support at least:
-
-- capability-to-operation view;
-- decision impact view;
-- runtime dependency view;
-- release scope and critical path;
+- decision impact;
+- capability realization;
+- runtime dependency;
+- verification coverage;
+- release composition;
 - UC-BoK traceability;
 - economic attribution;
-- verification coverage;
-- stale or orphaned record detection.
+- stale, unresolved and orphaned knowledge.
+
+Each query identifies the authoritative nodes and declared edges used, distinguishes inferred edges, exposes incomplete external resolution and carries a validity timestamp.
+
+## Canonical questions
+
+- What does a decision affect?
+- What realizes a capability?
+- Which interface and data contracts support a runtime responsibility?
+- Which evidence verifies a claim and is it still fresh?
+- Which records enter a release?
+- Which records are stale, isolated, unresolved or orphaned?
+
+These questions are answered from controlled relations and evidence metadata rather than free-text interpretation.
+
+## Tooling
+
+- `scripts/validate_records.py` validates one record and its relation shapes.
+- `scripts/validate_record_graph.py` validates cross-record identity, resolution, cycles and orphan/isolation rules.
+- Yukh may add cross-repository projection and visualization but remains non-authoritative.
+
+## Completion
+
+Issue #58 is complete when the controlled model from #64, authority model from #67, graph integrity contract and repository-local graph validator are all in place. These artifacts now provide the required semantics without making a graph database mandatory.

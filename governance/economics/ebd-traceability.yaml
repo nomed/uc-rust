@@ -1,0 +1,50 @@
+schema_version: 1
+specification:
+  repository: nomed/ebd-bok
+  revision: working-draft-v0.1.0
+reference_implementation:
+  repository: nomed/uc-rust
+status_values:
+  - implemented
+  - partial
+  - planned
+  - not-applicable
+  - intentionally-divergent
+mappings:
+  - source_reference: docs/02-framework/unit-economics-chain.md
+    concepts:
+      - Unit Economics Chain
+      - Economic Unit
+      - consumption drivers
+      - Cost-to-Serve
+    target_artifacts:
+      - .context/decisions/ADR-0019-economics-by-design-integration.md
+      - governance/economics/economic-units.yaml
+      - governance/economics/consumption-drivers.yaml
+    status: partial
+    evidence: Governance model defined; executable measurement not yet implemented.
+  - source_reference: docs/02-framework/economic-metrics-operating-model.md
+    concepts:
+      - Measurement Stack
+      - Costing Policy
+      - Economic Metrics Repository
+      - Economic Observability
+      - Maturity Evolution
+    target_artifacts:
+      - governance/economics/costing-policy.yaml
+      - governance/economics/ebd-traceability.yaml
+    status: partial
+    evidence: Crawl policy defined; Walk and Run costing inputs remain planned.
+  - source_reference: docs/01-foundations/software-architecture-to-economic-architecture.md
+    concepts:
+      - economic architecture
+      - architectural economic consequences
+    target_artifacts:
+      - .context/decisions/ADR-0018-planes-consistency-and-cost-efficiency.md
+      - .context/decisions/ADR-0019-economics-by-design-integration.md
+    status: partial
+    evidence: Economic governance is accepted; automated evidence remains absent.
+reciprocal_governance:
+  uc_rust_issue: TBD
+  ebd_bok_issue: TBD
+  rule: Material implementation findings that clarify, challenge or extend EbD require reciprocal issues and explicit compatibility impact.

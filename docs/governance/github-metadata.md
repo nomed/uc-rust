@@ -11,14 +11,22 @@ GitHub repository metadata and Project v2 configuration are managed as code.
 - exact labels assigned to managed issues;
 - issue-to-milestone assignments;
 - membership of issues in `users/nomed/projects/4`;
-- custom Project fields and single-select options;
-- Project values for stage, priority, type, area, release and size.
+- managed Project fields and single-select options;
+- Project values for status, priority, type, area, release and size.
 
-Manual changes are considered drift and may be overwritten or deleted.
+`governance/github-structure.json` is authoritative for:
+
+- parent and sub-issue relationships;
+- issue dependencies;
+- release date ranges used by roadmap fields.
+
+Manual changes are considered drift and may be overwritten.
 
 ## Clean-state policy
 
-Apply mode is intentionally convergent and destructive:
+The ordinary push reconciliation is additive and non-destructive. Destructive cleanup is reserved for explicit manual apply mode.
+
+When destructive cleanup is enabled:
 
 - labels not declared in the manifest are deleted;
 - milestones not declared in the manifest are deleted;
@@ -26,23 +34,21 @@ Apply mode is intentionally convergent and destructive:
 - Project items not represented in the manifest are deleted;
 - each managed issue receives exactly the declared labels and milestone.
 
-GitHub system Project fields such as `Title`, `Status`, `Labels`, `Milestone` and `Repository` are protected. Operational workflow state is stored in the managed custom field `Stage`, because GitHub's built-in `Status` options are not safely replaceable through the CLI.
+GitHub system Project fields such as `Title`, `Status`, `Labels`, `Milestone` and `Repository` are protected from deletion. Workflow state is written to GitHub's native `Status` field. The synchronizer requires the configured Status options to include `Backlog`, `Ready`, `In progress`, `In review`, `Blocked` and `Done`.
 
 ## Taxonomy
 
 Repository labels are intentionally limited to dimensions useful outside the Project:
 
-- `priority:*`
-- `type:*`
-- `area:*`
+- `priority:*`;
+- `type:*`;
+- `area:*`.
 
-The following are not labels:
+The following are not duplicated as labels:
 
 - release: represented by repository milestone and Project `Release`;
-- workflow status: represented by Project `Stage`;
+- workflow status: represented by native Project `Status`;
 - estimate: represented by Project `Size`.
-
-This avoids duplicated and contradictory metadata.
 
 ## Workflow modes
 
@@ -50,11 +56,24 @@ The workflow `.github/workflows/sync-governance.yml` supports:
 
 ### Validate
 
-Runs on pull requests. It validates the manifest without accessing or changing GitHub metadata.
+Validates manifests and compiles governance scripts without changing GitHub.
 
 ### Dry-run
 
-Runs after relevant changes reach `main`, and may also be started manually. It reports drift without changing GitHub.
+Runs for pull requests or through manual dispatch and reports governance drift.
+
+### Reconcile
+
+Runs automatically after relevant changes reach `main`, and may also be started manually. Before changing anything it verifies that `PROJECT_TOKEN` exists and can read Project #4. It then reconciles:
+
+- labels and milestones;
+- issue labels and milestone assignments;
+- Project membership;
+- native Status and managed Project field values;
+- parent/sub-issue relationships and dependencies;
+- roadmap date fields.
+
+The preflight is intentionally first: a missing or invalid Project token must not leave repository metadata updated while the Project remains stale.
 
 ### Apply
 
@@ -64,40 +83,35 @@ Runs only through manual dispatch. It requires:
 2. entering `DELETE_UNMANAGED_GITHUB_METADATA`;
 3. approval of the `github-governance` environment, when protection rules are configured.
 
-Apply performs the cleanup policy described above.
+Apply may perform the destructive cleanup policy described above.
 
 ## Required secret
 
 Create a repository Actions secret named `PROJECT_TOKEN`.
 
-For a user-owned Project, use a dedicated personal access token authorized for:
+For a user-owned Project, use a dedicated personal access token authorized for Project v2 and able to read/write Project #4. The token must also be able to resolve issues from `nomed/uc-rust` when they are added to the Project.
 
-- the `project` scope required by `gh project`;
-- access to `nomed/uc-rust` issues and repository metadata.
-
-The default `GITHUB_TOKEN` is used for repository labels, milestones and issue metadata. `PROJECT_TOKEN` is used only for Project v2 operations.
+The default `GITHUB_TOKEN` is used for repository labels, milestones, issue metadata and native issue relationships. `PROJECT_TOKEN` is used for Project v2 operations.
 
 The token must not be stored in repository files, examples or logs.
 
 ## Recommended environment protection
 
-Create an Actions environment named `github-governance` and require manual approval before deployment. The apply job uses this environment so destructive reconciliation cannot happen from an ordinary push.
+Create an Actions environment named `github-governance` and require manual approval before destructive apply. Ordinary reconcile remains automatic and non-destructive.
 
 ## Change procedure
 
-1. Change `governance/github-manifest.json` in a pull request.
-2. Review the manifest diff as a governance change.
+1. Change the manifests in a pull request.
+2. Review the governance diff.
 3. Merge only after validation passes.
-4. Review the dry-run output on `main`.
-5. Manually run apply with the required confirmation.
-6. Review the Project and repository issue metadata.
+4. Confirm the reconcile job succeeds on `main`.
+5. Review Project fields, hierarchy and roadmap.
+6. Use manual apply only when cleanup is intentionally required.
 
 ## Adding a new issue
 
-Creating an issue manually is allowed only as an initial capture step. Before it becomes part of the managed backlog, add its issue number and complete metadata to `governance/github-manifest.json`.
-
-An unmanaged issue is removed from Project #4 during apply, but the issue itself is not deleted.
+Creating an issue manually is allowed as an initial capture step. Before it becomes part of the managed backlog, add its issue number and complete metadata to `governance/github-manifest.json` and its structural relationships to `governance/github-structure.json` when applicable.
 
 ## Scope limitations
 
-GitHub Project views and visual layouts are not currently managed by the synchronization script. Fields, options, values and items are managed. Views should be treated as presentation-only until GitHub exposes a stable automation interface suitable for this repository.
+Field values, Project items, roadmap dates and issue relationships are automated. GitHub Project visual view configuration remains best-effort because the public automation surface for saved views is less stable than item and field APIs. A Roadmap view may still require one manual creation or adjustment in the GitHub UI, while its underlying date fields remain governed.

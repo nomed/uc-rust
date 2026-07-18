@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "repository": "nomed/uc-rust",
+  "cleanup": {
+    "delete_undefined_labels": true,
+    "delete_undefined_milestones": true,
+    "delete_undefined_project_fields": true,
+    "delete_unmanaged_project_items": true
+  },
+  "labels": [
+    {"name":"priority:P0","color":"b60205","description":"Critical: blocks the project or current milestone"},
+    {"name":"priority:P1","color":"d93f0b","description":"High priority"},
+    {"name":"priority:P2","color":"fbca04","description":"Normal priority"},
+    {"name":"priority:P3","color":"0e8a16","description":"Low priority or deferred"},
+
+    {"name":"type:epic","color":"3e4b9e","description":"Outcome spanning multiple deliverables"},
+    {"name":"type:discovery","color":"5319e7","description":"Research and definition before implementation"},
+    {"name":"type:architecture","color":"0052cc","description":"Architecture or system design"},
+    {"name":"type:governance","color":"1d76db","description":"Project governance and operating model"},
+    {"name":"type:security","color":"8b0000","description":"Security, privacy or supply-chain work"},
+    {"name":"type:planning","color":"6f42c1","description":"Roadmap and backlog planning"},
+    {"name":"type:gate","color":"000000","description":"Formal approval or readiness gate"},
+    {"name":"type:foundation","color":"0366d6","description":"Engineering foundation and golden path"},
+    {"name":"type:infrastructure","color":"006b75","description":"Infrastructure adapter or runtime dependency"},
+    {"name":"type:feature","color":"0e8a16","description":"User-visible or API capability"},
+    {"name":"type:domain","color":"22863a","description":"Domain model and business rules"},
+    {"name":"type:test","color":"bfdadc","description":"Verification and test capability"},
+
+    {"name":"area:platform","color":"c5def5","description":"Cross-cutting platform"},
+    {"name":"area:product","color":"fef2c0","description":"Product vision and scope"},
+    {"name":"area:architecture","color":"d4c5f9","description":"Target architecture and context map"},
+    {"name":"area:agentic-system","color":"b4a7d6","description":"Agent roles, orchestration and memory"},
+    {"name":"area:governance","color":"c2e0c6","description":"Decision and delivery governance"},
+    {"name":"area:security","color":"f9d0c4","description":"Security and compliance"},
+    {"name":"area:delivery","color":"bfd4f2","description":"Delivery lifecycle and quality gates"},
+    {"name":"area:roadmap","color":"e4e669","description":"Roadmap, milestones and backlog"},
+    {"name":"area:golden-path","color":"1d76db","description":"Rust engineering golden path"},
+    {"name":"area:basket","color":"0e8a16","description":"Basket capability"},
+    {"name":"area:pricing","color":"fbca04","description":"Pricing capability"},
+    {"name":"area:checkout-order","color":"d93f0b","description":"Checkout and Order capabilities"}
+  ],
+  "milestones": [
+    {"title":"M0 — Project Ready","description":"Complete project definition, agentic operating system, governance and readiness gate.","state":"open"},
+    {"title":"M1 — Rust Foundation","description":"Production-grade Rust golden path and runtime baseline.","state":"open"},
+    {"title":"M2 — Persistent Basket","description":"First complete Basket vertical slice with persistence, API and E2E verification.","state":"open"},
+    {"title":"M3 — Commercial Basket","description":"Pricing-owned commercial calculation and traceable price snapshots.","state":"open"},
+    {"title":"M4 — Checkout to Order","description":"Checkout, Order, reliable event publication and outbox.","state":"open"}
+  ],
+  "project": {
+    "owner":"nomed",
+    "number":4,
+    "title":"UC Rust",
+    "description":"Roadmap and delivery governance for the UC Rust platform.",
+    "readme":"The project is managed from governance/github-manifest.json. Manual metadata changes are overwritten by the governance synchronization workflow.",
+    "fields": [
+      {"name":"Priority","type":"SINGLE_SELECT","options":["P0","P1","P2","P3"]},
+      {"name":"Type","type":"SINGLE_SELECT","options":["Epic","Discovery","Architecture","Governance","Security","Planning","Gate","Foundation","Infrastructure","Feature","Domain","Test"]},
+      {"name":"Area","type":"SINGLE_SELECT","options":["Platform","Product","Architecture","Agentic System","Governance","Security","Delivery","Roadmap","Golden Path","Basket","Pricing","Checkout & Order"]},
+      {"name":"Release","type":"SINGLE_SELECT","options":["M0","M1","M2","M3","M4","Cross-release"]},
+      {"name":"Size","type":"SINGLE_SELECT","options":["XS","S","M","L","XL"]}
+    ],
+    "protected_fields":["Title","Assignees","Status","Labels","Milestone","Repository","Reviewers","Linked pull requests","Parent issue","Sub-issues progress","Tracks"],
+    "status_options":["Backlog","Ready","In progress","In review","Blocked","Done"]
+  },
+  "issues": {
+    "1":{"labels":["priority:P0","type:epic","area:platform"],"milestone":null,"project":{"Status":"In progress","Priority":"P0","Type":"Epic","Area":"Platform","Release":"Cross-release","Size":"XL"}},
+    "2":{"labels":["priority:P0","type:foundation","area:golden-path"],"milestone":"M1 — Rust Foundation","project":{"Status":"Blocked","Priority":"P0","Type":"Foundation","Area":"Golden Path","Release":"M1","Size":"M"}},
+    "3":{"labels":["priority:P0","type:foundation","area:platform"],"milestone":"M1 — Rust Foundation","project":{"Status":"Blocked","Priority":"P0","Type":"Foundation","Area":"Platform","Release":"M1","Size":"M"}},
+    "4":{"labels":["priority:P0","type:infrastructure","area:basket"],"milestone":"M2 — Persistent Basket","project":{"Status":"Blocked","Priority":"P0","Type":"Infrastructure","Area":"Basket","Release":"M2","Size":"L"}},
+    "5":{"labels":["priority:P0","type:feature","area:basket"],"milestone":"M2 — Persistent Basket","project":{"Status":"Blocked","Priority":"P0","Type":"Feature","Area":"Basket","Release":"M2","Size":"L"}},
+    "6":{"labels":["priority:P0","type:domain","area:basket"],"milestone":"M2 — Persistent Basket","project":{"Status":"Blocked","Priority":"P0","Type":"Domain","Area":"Basket","Release":"M2","Size":"M"}},
+    "7":{"labels":["priority:P0","type:test","area:basket"],"milestone":"M2 — Persistent Basket","project":{"Status":"Blocked","Priority":"P0","Type":"Test","Area":"Basket","Release":"M2","Size":"M"}},
+    "8":{"labels":["priority:P1","type:architecture","area:pricing"],"milestone":"M3 — Commercial Basket","project":{"Status":"Blocked","Priority":"P1","Type":"Architecture","Area":"Pricing","Release":"M3","Size":"L"}},
+    "9":{"labels":["priority:P1","type:discovery","area:checkout-order"],"milestone":"M4 — Checkout to Order","project":{"Status":"Blocked","Priority":"P1","Type":"Discovery","Area":"Checkout & Order","Release":"M4","Size":"M"}},
+    "10":{"labels":["priority:P0","type:epic","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Epic","Area":"Governance","Release":"M0","Size":"XL"}},
+    "11":{"labels":["priority:P0","type:discovery","area:product"],"milestone":"M0 — Project Ready","project":{"Status":"Ready","Priority":"P0","Type":"Discovery","Area":"Product","Release":"M0","Size":"M"}},
+    "12":{"labels":["priority:P0","type:architecture","area:architecture"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Architecture","Release":"M0","Size":"XL"}},
+    "13":{"labels":["priority:P0","type:architecture","area:agentic-system"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Agentic System","Release":"M0","Size":"L"}},
+    "14":{"labels":["priority:P0","type:architecture","area:agentic-system"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Architecture","Area":"Agentic System","Release":"M0","Size":"L"}},
+    "15":{"labels":["priority:P0","type:governance","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Governance","Release":"M0","Size":"M"}},
+    "16":{"labels":["priority:P0","type:security","area:security"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Security","Area":"Security","Release":"M0","Size":"L"}},
+    "17":{"labels":["priority:P0","type:governance","area:delivery"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Governance","Area":"Delivery","Release":"M0","Size":"L"}},
+    "18":{"labels":["priority:P0","type:planning","area:roadmap"],"milestone":"M0 — Project Ready","project":{"Status":"Backlog","Priority":"P0","Type":"Planning","Area":"Roadmap","Release":"M0","Size":"XL"}},
+    "19":{"labels":["priority:P0","type:gate","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"Blocked","Priority":"P0","Type":"Gate","Area":"Governance","Release":"M0","Size":"M"}},
+    "20":{"labels":["priority:P0","type:governance","area:governance"],"milestone":"M0 — Project Ready","project":{"Status":"In progress","Priority":"P0","Type":"Governance","Area":"Governance","Release":"M0","Size":"L"}}
+  }
+}

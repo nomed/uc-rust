@@ -1,6 +1,6 @@
 # ADR-0029 — Extension, Plugin and Capability Registration Boundaries
 
-- Status: Reviewable for acceptance
+- Status: Accepted
 - Date: 2026-07-19
 - Governing issue: #52
 - Parent epic: #46

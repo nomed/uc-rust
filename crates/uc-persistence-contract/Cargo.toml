@@ -1,0 +1,13 @@
+[package]
+name = "uc-persistence-contract"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+uc-application = { path = "../uc-application" }
+uc-domain = { path = "../uc-domain" }
+
+[lints]
+workspace = true

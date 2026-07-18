@@ -1,0 +1,50 @@
+schema_version: 1
+workload:
+  id: sync-durable-event-v1
+  status: implemented-not-evidenced
+  economic_unit: uc.synced_business_event
+  operation: sync.sqlite.round_trip
+  deployment_profile: store-edge
+  defaults:
+    unique_events: 10000
+    payload_bytes_per_event: 512
+    duplicate_attempts: 100
+  phases:
+    - durable_outbox_enqueue
+    - pending_backlog_read
+    - central_inbox_accept
+    - duplicate_delivery_detection
+    - durable_outbox_acknowledgement
+  measured:
+    - id: compute.elapsed_time
+      method: monotonic wall-clock around the complete workload
+    - id: storage.bytes_written
+      method: SQLite main-file growth after initialization and final close
+      limitation: does not yet include temporary WAL high-water bytes or physical device write amplification
+    - id: network.wan_bytes
+      method: logical payload bytes submitted to central accept
+      limitation: excludes protocol, TLS and transport framing
+    - id: sync.delivery_attempt
+      method: exact harness counter
+    - id: sync.duplicate_delivery
+      method: exact AcceptResult::Duplicate counter
+  attributed:
+    - id: database.transaction
+      method: current adapter-contract count for unique central accepts
+      limitation: partial; excludes enqueue, duplicate accept and acknowledgement transaction totals
+  deferred:
+    - compute.cpu_time
+    - compute.allocated_memory
+    - database.read_operation
+    - database.write_operation
+    - SQLite WAL high-water and device-level write amplification
+  gate_policy:
+    eligible_for_release_gate: false
+    reason: Baseline has not been compiled, executed repeatedly or accepted; CPU, memory and complete DB counters are absent.
+  evidence_required:
+    - clean workspace compilation
+    - deterministic test pass
+    - repeated representative runs
+    - environment fingerprint
+    - machine-readable report artifact
+    - accepted baseline and noise tolerance

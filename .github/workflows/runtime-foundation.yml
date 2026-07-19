@@ -48,7 +48,10 @@ jobs:
           components: rustfmt,clippy
       - uses: Swatinem/rust-cache@v2
       - name: Normalize formatting
-        run: cargo fmt --all
+        shell: bash
+        run: |
+          cargo fmt --all
+          git diff --binary > rustfmt.patch
       - name: Check Runtime Foundation slice
         shell: bash
         run: |
@@ -72,12 +75,13 @@ jobs:
             echo "$violations"
             exit 1
           fi
-      - name: Upload diagnostics
-        if: failure()
+      - name: Upload Runtime Foundation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: runtime-foundation-diagnostics
+          name: runtime-foundation-evidence
           path: |
+            rustfmt.patch
             runtime-check.log
             runtime-test.log
           if-no-files-found: warn

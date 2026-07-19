@@ -87,6 +87,8 @@ role_loading:
 
 write_policy:
   sessions: agents_allowed
+  session_update_required_for_substantive_pull_request: true
+  session_accountability_enforcement: .github/workflows/context-accountability.yml
   handoffs: agents_allowed
   decisions: proposal_allowed_human_acceptance_required
   rfcs: draft_allowed_human_acceptance_required

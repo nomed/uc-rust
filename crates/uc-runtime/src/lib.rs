@@ -1,9 +1,17 @@
+//! Runtime implementations of canonical Unified Commerce Operations.
+//!
+//! This application-layer crate depends only on transport-neutral contracts from
+//! `uc-operation`. It owns canonical Ping semantics and reusable semantic fixtures.
+//! Delivery adapters may invoke these Operations but must not alter their behavior.
+//! Cancellation and deadlines are checked before admitting and before completing work.
+
 use async_trait::async_trait;
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError, OperationId, PingRequest,
     PingResponse, TraceContext,
 };
 
+/// Canonical Ping Operation used to prove cross-adapter semantic equivalence.
 #[derive(Clone, Default)]
 pub struct PingOperation;
 
@@ -34,6 +42,7 @@ impl Operation for PingOperation {
     }
 }
 
+/// Builds deterministic transport-neutral context for shared semantic fixtures.
 pub fn fixture_context(correlation_id: &str) -> ExecutionContext {
     ExecutionContext {
         tenant_id: "tenant-a".into(),

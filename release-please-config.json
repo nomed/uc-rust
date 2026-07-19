@@ -23,6 +23,10 @@
         {
           "type": "generic",
           "path": "deploy/oci/release.env"
+        },
+        {
+          "type": "generic",
+          "path": "deploy/kubernetes/runtime-gateway.yaml"
         }
       ]
     }

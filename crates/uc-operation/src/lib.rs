@@ -213,13 +213,20 @@ mod tests {
     fn future_deadline_reports_remaining_time() {
         let context = context(Some(Instant::now() + Duration::from_secs(1)));
         assert!(context.ensure_active().is_ok());
-        assert!(context.remaining().is_some_and(|remaining| !remaining.is_zero()));
+        assert!(
+            context
+                .remaining()
+                .is_some_and(|remaining| !remaining.is_zero())
+        );
     }
 
     #[test]
     fn expired_deadline_saturates_remaining_time() {
         let context = context(Some(Instant::now() - Duration::from_millis(1)));
-        assert_eq!(context.ensure_active(), Err(OperationError::DeadlineExceeded));
+        assert_eq!(
+            context.ensure_active(),
+            Err(OperationError::DeadlineExceeded)
+        );
         assert_eq!(context.remaining(), Some(Duration::ZERO));
     }
 

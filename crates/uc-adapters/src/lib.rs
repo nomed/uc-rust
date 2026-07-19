@@ -15,10 +15,10 @@ pub mod proto {
 }
 
 use axum::{
-    Json, Router,
     extract::State,
     http::{HeaderMap, StatusCode},
     routing::post,
+    Json, Router,
 };
 use proto::{
     runtime_service_client::RuntimeServiceClient,
@@ -26,13 +26,14 @@ use proto::{
 };
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{Request, Response, Status, metadata::MetadataValue};
+use tonic::{metadata::MetadataValue, Request, Response, Status};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,
 };
 use uc_runtime::PingOperation;
 
+const CANCELLATION_HEADER: &str = "x-uc-cancelled";
 const CORRELATION_HEADER: &str = "x-correlation-id";
 const TRACEPARENT_HEADER: &str = "traceparent";
 
@@ -55,6 +56,10 @@ impl RuntimeService for GrpcRuntimeService {
             .and_then(|value| value.parse::<u64>().ok())
             .map(Duration::from_millis)
             .unwrap_or_else(|| Duration::from_secs(30));
+        let cancellation = CancellationToken::default();
+        if metadata_string(request.metadata(), CANCELLATION_HEADER).as_deref() == Some("true") {
+            cancellation.cancel();
+        }
         let request = request.into_inner();
         let correlation_id = request.correlation_id.clone();
         let response = self
@@ -74,7 +79,7 @@ impl RuntimeService for GrpcRuntimeService {
                         tracestate,
                     },
                     deadline: Some(std::time::Instant::now() + timeout),
-                    cancellation: CancellationToken::default(),
+                    cancellation,
                 },
             )
             .await

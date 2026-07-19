@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,7 +22,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const shutdownTimeout = 10 * time.Second
+const (
+	shutdownTimeout = 10 * time.Second
+	readinessTimeout = 500 * time.Millisecond
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -50,9 +54,18 @@ func run() error {
 		return err
 	}
 
+	mux := http.NewServeMux()
+	mux.Handle("/", gateway)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	})
+	mux.HandleFunc("GET /readyz", readinessHandler(*grpcEndpoint))
+	docs.Register(mux)
+
 	server := &http.Server{
 		Addr:              *listenAddr,
-		Handler:           newHTTPMux(gateway),
+		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -75,19 +88,17 @@ func run() error {
 	}
 }
 
-func newHTTPMux(gateway http.Handler) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/", gateway)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok\n"))
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+func readinessHandler(grpcEndpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		connection, err := net.DialTimeout("tcp", grpcEndpoint, readinessTimeout)
+		if err != nil {
+			http.Error(w, "gRPC backend unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		_ = connection.Close()
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ready\n"))
-	})
-	docs.Register(mux)
-	return mux
+	}
 }
 
 func envOrDefault(name, fallback string) string {

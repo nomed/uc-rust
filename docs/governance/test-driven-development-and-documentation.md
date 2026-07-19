@@ -18,9 +18,11 @@ Tests must assert canonical semantics, not implementation accidents. Transport a
 
 ## Risk-based coverage
 
-The governed Runtime Foundation packages must maintain at least **90% line, function, and region coverage**. Coverage is a merge gate, not an informational metric, but it is also a lossy risk indicator rather than proof of test quality.
+The governed Runtime Foundation packages must maintain at least **90% line and function coverage**. Coverage is a merge gate, not an informational metric, but it is also a lossy risk indicator rather than proof of test quality.
 
 The threshold follows ADR-0030 and authoritative engineering guidance that treats 90% as exemplary while warning that a universal 100% target can incentivize low-value tests and false confidence. Critical canonical semantics remain expected to have complete behavioral coverage even when aggregate package coverage is below 100%.
+
+LLVM region coverage is retained as diagnostic evidence but is not a merge threshold. Compiler lowering and macro expansion can make region counts unstable and poorly aligned with source-level risk; reviewers instead inspect uncovered lines and branches and require explicit tests for critical decisions.
 
 Coverage exclusions are not permitted merely because code is difficult to test. Generated code, compiler-generated paths, and technically unreachable defensive branches may only be excluded through an explicit, reviewed repository policy that records:
 
@@ -29,7 +31,7 @@ Coverage exclusions are not permitted merely because code is difficult to test. 
 - which alternative verification protects the behavior;
 - the approving architectural decision.
 
-No such exclusions are approved for the current Runtime Foundation slice.
+No such exclusions are approved for the current Runtime Foundation slice beyond the composition-root scope recorded by ADR-0030.
 
 Coverage does not replace behavioral rigor. Required tests include unit, contract, semantic conformance, adapter integration, cancellation, deadline, error mapping, tracing, and architecture tests. Reviewers must inspect the exact uncovered behavior and may require tests even when the aggregate threshold is satisfied.
 
@@ -54,7 +56,7 @@ Comments must explain intent and constraints rather than narrating syntax. Stale
 A Runtime Foundation pull request is ready for review only when it contains:
 
 - the behavior-first test plan and red-green-refactor evidence;
-- at least 90% line/function/region coverage evidence from CI;
+- at least 90% line and function coverage evidence from CI;
 - review of uncovered behavior and confirmation that critical semantic paths are tested;
 - shared semantic fixtures for equivalent adapter behavior;
 - successful Rustdoc generation with warnings denied;
@@ -69,7 +71,8 @@ The `Runtime Foundation` workflow enforces:
 - module-level documentation for every Rust file under `crates/` and `apps/`;
 - Rustdoc generation with warnings denied;
 - tests under `cargo-llvm-cov`;
-- a 90% minimum for line, function, and region coverage;
+- a 90% minimum for line and function coverage over executable libraries;
+- dedicated tests for excluded composition roots;
 - architecture and protobuf compatibility checks.
 
 These gates may be strengthened but may only be changed through an accepted governance decision.

@@ -7,6 +7,10 @@ on:
       - "gateway/**"
       - "buf.yaml"
       - "buf.gen.yaml"
+      - "apps/uc-cli/**"
+      - "crates/uc-adapters/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
       - ".github/workflows/grpc-gateway.yml"
   push:
     branches: [main]
@@ -15,6 +19,10 @@ on:
       - "gateway/**"
       - "buf.yaml"
       - "buf.gen.yaml"
+      - "apps/uc-cli/**"
+      - "crates/uc-adapters/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
       - ".github/workflows/grpc-gateway.yml"
 
 permissions:
@@ -29,6 +37,9 @@ jobs:
         with:
           go-version: "1.24.5"
           cache-dependency-path: gateway/go.mod
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
       - uses: bufbuild/buf-setup-action@v1
         with:
           version: "1.57.2"
@@ -72,6 +83,64 @@ jobs:
           set -o pipefail
           mkdir -p ../dist
           go build -trimpath -o ../dist/uc-gateway ./cmd/uc-gateway 2>&1 | tee gateway-build.log
+      - name: Live REST to Rust gRPC conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build -p uc-cli 2>&1 | tee gateway-rust-build.log
+
+          target/debug/uc --grpc-addr 127.0.0.1:50051 serve-grpc > gateway-rust-service.log 2>&1 &
+          rust_pid=$!
+          UC_GATEWAY_ADDR=127.0.0.1:8080 \
+          UC_GRPC_ENDPOINT=127.0.0.1:50051 \
+            dist/uc-gateway > gateway-live-service.log 2>&1 &
+          gateway_pid=$!
+          cleanup() {
+            kill "$gateway_pid" "$rust_pid" 2>/dev/null || true
+            wait "$gateway_pid" "$rust_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:8080/readyz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:8080/healthz | grep -qx 'ok'
+          curl --silent --fail http://127.0.0.1:8080/readyz | grep -qx 'ready'
+
+          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+          curl --silent --show-error --fail \
+            --dump-header gateway-live-success.headers \
+            --output gateway-live-success.json \
+            -H 'content-type: application/json' \
+            -H "traceparent: ${traceparent}" \
+            -H 'x-correlation-id: live-success' \
+            --data '{"message":" hello ","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-success"}' \
+            http://127.0.0.1:8080/v1/runtime:ping
+          jq -e '.message == "hello" and .tenantId == "tenant-a" and .correlationId == "live-success"' gateway-live-success.json
+          grep -qi '^Grpc-Metadata-X-Correlation-Id: live-success' gateway-live-success.headers
+          grep -qi "^Grpc-Metadata-Traceparent: ${traceparent}" gateway-live-success.headers
+
+          invalid_status=$(curl --silent --show-error \
+            --output gateway-live-invalid.json \
+            --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data '{"message":"   ","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-invalid"}' \
+            http://127.0.0.1:8080/v1/runtime:ping)
+          test "$invalid_status" = '400'
+          jq -e '.code == 3 and .message == "message must not be blank"' gateway-live-invalid.json
+
+          cancelled_status=$(curl --silent --show-error \
+            --output gateway-live-cancelled.json \
+            --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            -H 'x-uc-cancelled: true' \
+            --data '{"message":"hello","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-cancelled"}' \
+            http://127.0.0.1:8080/v1/runtime:ping)
+          test "$cancelled_status" = '499'
+          jq -e '.code == 1 and .message == "cancelled"' gateway-live-cancelled.json
       - name: Upload generation evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -85,6 +154,13 @@ jobs:
             gateway/gateway-mod.log
             gateway/gateway-test.log
             gateway/gateway-build.log
+            gateway-rust-build.log
+            gateway-rust-service.log
+            gateway-live-service.log
+            gateway-live-success.headers
+            gateway-live-success.json
+            gateway-live-invalid.json
+            gateway-live-cancelled.json
             dist/uc-gateway
           if-no-files-found: warn
           retention-days: 7

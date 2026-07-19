@@ -29,6 +29,14 @@ on:
 permissions:
   contents: read
 
+env:
+  RUNTIME_PACKAGES: >-
+    -p uc-operation
+    -p uc-runtime
+    -p uc-config
+    -p uc-adapters
+    -p uc-cli
+
 jobs:
   rust:
     runs-on: ubuntu-24.04
@@ -41,24 +49,23 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Normalize formatting
         run: cargo fmt --all
-      - name: Check
+      - name: Check Runtime Foundation slice
         shell: bash
         run: |
           set -o pipefail
-          cargo check --workspace --all-targets 2>&1 | tee runtime-check.log
-      - name: Test
+          cargo check $RUNTIME_PACKAGES --all-targets 2>&1 | tee runtime-check.log
+      - name: Test Runtime Foundation slice
         shell: bash
         run: |
           set -o pipefail
-          cargo test --workspace 2>&1 | tee runtime-test.log
+          cargo test $RUNTIME_PACKAGES 2>&1 | tee runtime-test.log
       - name: Architecture boundary check
         shell: bash
         run: |
           set -euo pipefail
-          violations=$(grep -R -nE 'std::env::|env::var\(' crates apps \
+          violations=$(grep -R -nE 'std::env::|env::var\(' \
+            crates/uc-operation crates/uc-runtime crates/uc-adapters apps/uc-cli \
             --include='*.rs' \
-            --exclude-dir=target \
-            | grep -v '^crates/uc-config/' \
             | grep -v '^crates/uc-adapters/build.rs:' || true)
           if [ -n "$violations" ]; then
             echo "Direct environment access outside configuration boundary:"

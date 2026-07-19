@@ -16,6 +16,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	runtimev1 "github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1"
+	"github.com/nomed/uc-rust/gateway/internal/docs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -49,20 +50,9 @@ func run() error {
 		return err
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", gateway)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok\n"))
-	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ready\n"))
-	})
-
 	server := &http.Server{
 		Addr:              *listenAddr,
-		Handler:           mux,
+		Handler:           newHTTPMux(gateway),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -83,6 +73,21 @@ func run() error {
 		}
 		return err
 	}
+}
+
+func newHTTPMux(gateway http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/", gateway)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	})
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ready\n"))
+	})
+	docs.Register(mux)
+	return mux
 }
 
 func envOrDefault(name, fallback string) string {

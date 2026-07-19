@@ -100,7 +100,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
+          if git diff --quiet origin/main...HEAD -- proto buf.yaml; then
+            echo 'No protobuf contract changes in this PR.'
+          elif git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
             buf breaking --against '.git#branch=main'
           else
             echo 'No protobuf baseline exists on main; this PR establishes it.'

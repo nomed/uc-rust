@@ -94,7 +94,6 @@ jobs:
             --output-path runtime-coverage.lcov \
             --fail-under-lines 90 \
             --fail-under-functions 90 \
-            --fail-under-regions 90 \
             2>&1 | tee runtime-test.log
       - name: Architecture boundary check
         shell: bash

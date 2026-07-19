@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	shutdownTimeout = 10 * time.Second
+	shutdownTimeout  = 10 * time.Second
 	readinessTimeout = 500 * time.Millisecond
 )
 

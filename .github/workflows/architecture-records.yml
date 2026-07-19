@@ -72,6 +72,23 @@ jobs:
         if: github.event_name == 'pull_request'
         run: python scripts/validate_record_changes.py --base-ref origin/${{ github.base_ref }} docs/knowledge/records
       - name: Validate legacy migration inventory
-        run: python scripts/inventory_legacy_records.py --check --format markdown
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/inventory_legacy_records.py \
+            --check \
+            --format markdown \
+            --output legacy-record-inventory.md \
+            2> legacy-record-errors.log
       - name: Run validator fixtures
         run: python tests/test_record_validator.py
+      - name: Upload architecture validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-record-evidence
+          path: |
+            legacy-record-inventory.md
+            legacy-record-errors.log
+          if-no-files-found: warn
+          retention-days: 7

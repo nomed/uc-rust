@@ -32,7 +32,7 @@ plugins:
       - go
       - run
       - github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.28.0
-    out: gateway/gen/openapi
+    out: gateway/internal/docs/spec
     opt:
       - grpc_api_configuration=gateway/http.yaml
       - allow_merge=true

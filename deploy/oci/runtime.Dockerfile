@@ -15,9 +15,11 @@ RUN cargo build --locked --release -p uc-cli
 
 FROM debian:${DEBIAN_VERSION} AS runtime
 
-ARG VERSION=0.0.0-dev
+ARG VERSION
 ARG REVISION=unknown
 ARG SOURCE=https://github.com/nomed/uc-rust
+
+RUN test -n "${VERSION}"
 
 LABEL org.opencontainers.image.title="UC Rust Runtime" \
       org.opencontainers.image.description="Canonical Rust/Tonic runtime for UC Operations" \

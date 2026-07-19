@@ -54,15 +54,15 @@ jobs:
           test -f gateway/gen/go/uc/runtime/v1/runtime.pb.go
           test -f gateway/gen/go/uc/runtime/v1/runtime_grpc.pb.go
           test -f gateway/gen/go/uc/runtime/v1/runtime.pb.gw.go
-          test -f gateway/gen/openapi/uc-runtime.swagger.json
-          grep -q '"/v1/runtime:ping"' gateway/gen/openapi/uc-runtime.swagger.json
-          grep -q '"/v1/runtime/ping"' gateway/gen/openapi/uc-runtime.swagger.json
+          test -f gateway/internal/docs/spec/uc-runtime.swagger.json
+          grep -q '"/v1/runtime:ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
+          grep -q '"/v1/runtime/ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
       - name: Verify Go formatting
         working-directory: gateway
         shell: bash
         run: |
           set -euo pipefail
-          gofmt -d cmd | tee gateway-format.patch
+          gofmt -d cmd internal | tee gateway-format.patch
           test ! -s gateway-format.patch
       - name: Resolve Go module
         working-directory: gateway
@@ -109,6 +109,12 @@ jobs:
           done
           curl --silent --fail http://127.0.0.1:8080/healthz | grep -qx 'ok'
           curl --silent --fail http://127.0.0.1:8080/readyz | grep -qx 'ready'
+          curl --silent --show-error --fail http://127.0.0.1:8080/openapi.json \
+            --output gateway-live-openapi.json
+          jq -e '.paths["/v1/runtime:ping"] != null' gateway-live-openapi.json
+          curl --silent --show-error --fail http://127.0.0.1:8080/swagger/ \
+            --output gateway-live-swagger.html
+          grep -q 'url: "/openapi.json"' gateway-live-swagger.html
 
           traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
           curl --silent --show-error --fail \
@@ -148,7 +154,7 @@ jobs:
           name: grpc-gateway-generation
           path: |
             gateway/gen/go
-            gateway/gen/openapi
+            gateway/internal/docs/spec/uc-runtime.swagger.json
             gateway/go.sum
             gateway/gateway-format.patch
             gateway/gateway-mod.log
@@ -157,6 +163,8 @@ jobs:
             gateway-rust-build.log
             gateway-rust-service.log
             gateway-live-service.log
+            gateway-live-openapi.json
+            gateway-live-swagger.html
             gateway-live-success.headers
             gateway-live-success.json
             gateway-live-invalid.json

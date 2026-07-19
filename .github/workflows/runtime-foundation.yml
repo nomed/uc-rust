@@ -1,0 +1,107 @@
+name: Runtime Foundation
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "apps/uc-cli/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - "crates/uc-config/**"
+      - "crates/uc-adapters/**"
+      - "proto/**"
+      - "buf.yaml"
+      - ".github/workflows/runtime-foundation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "apps/uc-cli/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - "crates/uc-config/**"
+      - "crates/uc-adapters/**"
+      - "proto/**"
+      - "buf.yaml"
+
+permissions:
+  contents: read
+
+env:
+  RUNTIME_PACKAGES: >-
+    -p uc-operation
+    -p uc-runtime
+    -p uc-config
+    -p uc-adapters
+    -p uc-cli
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          components: rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Normalize formatting
+        shell: bash
+        run: |
+          cargo fmt --all
+          git diff --binary > rustfmt.patch
+      - name: Check Runtime Foundation slice
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo check $RUNTIME_PACKAGES --all-targets 2>&1 | tee runtime-check.log
+      - name: Test Runtime Foundation slice
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test $RUNTIME_PACKAGES 2>&1 | tee runtime-test.log
+      - name: Architecture boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          violations=$(grep -R -nE 'std::env::|env::var\(' \
+            crates/uc-operation crates/uc-runtime crates/uc-adapters apps/uc-cli \
+            --include='*.rs' \
+            | grep -v '^crates/uc-adapters/build.rs:' || true)
+          if [ -n "$violations" ]; then
+            echo "Direct environment access outside configuration boundary:"
+            echo "$violations"
+            exit 1
+          fi
+      - name: Upload Runtime Foundation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-foundation-evidence
+          path: |
+            rustfmt.patch
+            runtime-check.log
+            runtime-test.log
+          if-no-files-found: warn
+          retention-days: 7
+
+  protobuf:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf lint
+      - name: Breaking changes against main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
+            buf breaking --against '.git#branch=main'
+          else
+            echo 'No protobuf baseline exists on main; this PR establishes it.'
+          fi

@@ -1,0 +1,4 @@
+# Versioned baseline. Environment variables override these values; CLI args override all.
+grpc_addr = "127.0.0.1:50051"
+gateway_addr = "127.0.0.1:8080"
+log_level = "info"

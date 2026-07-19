@@ -89,7 +89,9 @@ Apply may perform the destructive cleanup policy described above.
 
 Create a repository Actions secret named `PROJECT_TOKEN`.
 
-For a user-owned Project, use a dedicated personal access token authorized for Project v2 and able to read/write Project #4. The token must also be able to resolve issues from `nomed/uc-rust` when they are added to the Project.
+Use a dedicated token authorized for Project v2 and able to read/write the `project.number` configured in `governance/github-manifest.json`. The token must also be able to resolve issues from `nomed/uc-rust` when they are added to the Project.
+
+The workflow preflight first validates access using the manifest owner/number pair and automatically retries without `--owner` when GitHub CLI reports `unknown owner type` for user-token contexts.
 
 The default `GITHUB_TOKEN` is used for repository labels, milestones, issue metadata and native issue relationships. `PROJECT_TOKEN` is used for Project v2 operations.
 

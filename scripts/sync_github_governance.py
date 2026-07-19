@@ -257,6 +257,20 @@ def gh_json(args: list[str], project_token: str) -> Any:
     return json.loads(completed.stdout)
 
 
+def resolve_project_owner_args(number: str, owner: str, project_token: str) -> tuple[dict[str, Any], list[str]]:
+    preferred_owner_args = ["--owner", owner]
+    try:
+        project_view = gh_json(["project", "view", number, *preferred_owner_args], project_token)
+        return project_view, preferred_owner_args
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").lower()
+        if "unknown owner type" not in stderr:
+            raise
+        project_view = gh_json(["project", "view", number], project_token)
+        log(f"[INFO] Project owner flag is unsupported for this token context; continuing without --owner for Project #{number}")
+        return project_view, []
+
+
 def gh_run(args: list[str], project_token: str, apply: bool, description: str) -> Any | None:
     prefix = "APPLY" if apply else "DRIFT"
     log(f"[{prefix}] {description}")
@@ -288,12 +302,12 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
     owner = project["owner"]
     number = str(project["number"])
 
-    view = gh_json(["project", "view", number, "--owner", owner], project_token)
+    view, owner_args = resolve_project_owner_args(number, owner, project_token)
     project_id = view["id"]
 
     gh_run(
         [
-            "project", "edit", number, "--owner", owner,
+            "project", "edit", number, *owner_args,
             "--title", project["title"],
             "--description", project["description"],
             "--readme", project["readme"],
@@ -304,13 +318,8 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
     )
 
     desired_fields = list(project["fields"])
-    # GitHub's built-in Status options are not safely replaceable via CLI. We use a
-    # managed custom Stage field and retain the built-in Status as a protected field.
-    desired_fields.append(
-        {"name": "Stage", "type": "SINGLE_SELECT", "options": project["status_options"]}
-    )
 
-    fields_payload = gh_json(["project", "field-list", number, "--owner", owner, "--limit", "100"], project_token)
+    fields_payload = gh_json(["project", "field-list", number, *owner_args, "--limit", "100"], project_token)
     existing_fields = unwrap(fields_payload, "fields")
     existing_by_name = {field["name"]: field for field in existing_fields}
     protected = set(project.get("protected_fields", []))
@@ -337,7 +346,7 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
             current = None
         if current is None:
             args = [
-                "project", "field-create", number, "--owner", owner,
+                "project", "field-create", number, *owner_args,
                 "--name", name, "--data-type", definition["type"],
             ]
             if desired_options:
@@ -356,11 +365,11 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
                 )
 
     if apply:
-        fields_payload = gh_json(["project", "field-list", number, "--owner", owner, "--limit", "100"], project_token)
+        fields_payload = gh_json(["project", "field-list", number, *owner_args, "--limit", "100"], project_token)
         existing_fields = unwrap(fields_payload, "fields")
         existing_by_name = {field["name"]: field for field in existing_fields}
 
-    items_payload = gh_json(["project", "item-list", number, "--owner", owner, "--limit", "500"], project_token)
+    items_payload = gh_json(["project", "item-list", number, *owner_args, "--limit", "500"], project_token)
     items = unwrap(items_payload, "items")
     issue_items: dict[int, dict[str, Any]] = {}
     for item in items:
@@ -379,7 +388,7 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
             )
             if not is_managed_issue:
                 gh_run(
-                    ["project", "item-delete", number, "--owner", owner, "--id", item["id"]],
+                    ["project", "item-delete", number, *owner_args, "--id", item["id"]],
                     project_token,
                     apply,
                     f"delete unmanaged project item {item.get('title', item['id'])}",
@@ -389,14 +398,14 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
         if issue_number not in issue_items:
             url = f"https://github.com/{manifest['repository']}/issues/{issue_number}"
             gh_run(
-                ["project", "item-add", number, "--owner", owner, "--url", url],
+                ["project", "item-add", number, *owner_args, "--url", url],
                 project_token,
                 apply,
                 f"add issue #{issue_number} to project",
             )
 
     if apply:
-        items_payload = gh_json(["project", "item-list", number, "--owner", owner, "--limit", "500"], project_token)
+        items_payload = gh_json(["project", "item-list", number, *owner_args, "--limit", "500"], project_token)
         items = unwrap(items_payload, "items")
         issue_items = {}
         for item in items:
@@ -412,16 +421,15 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
                 log(f"[DRIFT] project field values will be set after adding issue #{issue_number}")
             continue
         for manifest_field_name, value in issue_definition.get("project", {}).items():
-            actual_field_name = "Stage" if manifest_field_name == "Status" else manifest_field_name
-            field = existing_by_name.get(actual_field_name)
+            field = existing_by_name.get(manifest_field_name)
             if field is None:
                 if not apply:
-                    log(f"[DRIFT] set {actual_field_name}={value} on issue #{issue_number} after field creation")
+                    log(f"[DRIFT] set {manifest_field_name}={value} on issue #{issue_number} after field creation")
                     continue
-                raise GovernanceError(f"Missing project field after reconciliation: {actual_field_name}")
+                raise GovernanceError(f"Missing project field after reconciliation: {manifest_field_name}")
             option_id = field_options(field).get(value)
             if option_id is None:
-                raise GovernanceError(f"Missing option {value!r} in project field {actual_field_name}")
+                raise GovernanceError(f"Missing option {value!r} in project field {manifest_field_name}")
             gh_run(
                 [
                     "project", "item-edit",
@@ -432,7 +440,7 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
                 ],
                 project_token,
                 apply,
-                f"set {actual_field_name}={value} on issue #{issue_number}",
+                f"set {manifest_field_name}={value} on issue #{issue_number}",
             )
 
 

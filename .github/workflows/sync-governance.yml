@@ -9,7 +9,7 @@ on:
       - governance/github-structure.json
       - scripts/sync_github_governance.py
       - scripts/sync_github_structure.py
-      - scripts/sync_project_fields.py
+      - scripts/preflight_project_token.py
       - .yukh/project.yaml
       - .github/workflows/sync-governance.yml
   push:
@@ -19,7 +19,7 @@ on:
       - governance/github-structure.json
       - scripts/sync_github_governance.py
       - scripts/sync_github_structure.py
-      - scripts/sync_project_fields.py
+      - scripts/preflight_project_token.py
       - .yukh/project.yaml
       - .github/workflows/sync-governance.yml
   workflow_dispatch:
@@ -91,7 +91,7 @@ jobs:
       - name: Validate structure manifest
         run: python3 -m json.tool governance/github-structure.json >/dev/null
       - name: Compile governance scripts
-        run: python3 -m py_compile scripts/sync_github_governance.py scripts/sync_github_structure.py scripts/sync_project_fields.py
+        run: python3 -m py_compile scripts/sync_github_governance.py scripts/sync_github_structure.py scripts/preflight_project_token.py
 
   dry-run:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run')
@@ -114,21 +114,12 @@ jobs:
       - name: Preflight Project token
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-        run: |
-          if [ -z "$PROJECT_TOKEN" ]; then
-            echo "PROJECT_TOKEN is missing. Create a repository Actions secret with access to user Project #4." >&2
-            exit 1
-          fi
-          GH_TOKEN="$PROJECT_TOKEN" gh project view 4 --owner nomed --format json >/dev/null
-      - name: Reconcile labels, milestones, issue metadata and Project items
+        run: python3 scripts/preflight_project_token.py
+      - name: Reconcile labels, milestones, issue metadata and Project fields/items
         env:
           REPO_TOKEN: ${{ github.token }}
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         run: python3 scripts/sync_github_governance.py --mode apply --confirm DELETE_UNMANAGED_GITHUB_METADATA
-      - name: Set native Project field values
-        env:
-          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-        run: python3 scripts/sync_project_fields.py
       - name: Reconcile native parent, sub-issue, dependency and roadmap metadata
         env:
           REPO_TOKEN: ${{ github.token }}
@@ -145,21 +136,12 @@ jobs:
       - name: Preflight Project token
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-        run: |
-          if [ -z "$PROJECT_TOKEN" ]; then
-            echo "PROJECT_TOKEN is missing. Create a repository Actions secret with access to user Project #4." >&2
-            exit 1
-          fi
-          GH_TOKEN="$PROJECT_TOKEN" gh project view 4 --owner nomed --format json >/dev/null
+        run: python3 scripts/preflight_project_token.py
       - name: Reconcile with explicit cleanup policy
         env:
           REPO_TOKEN: ${{ github.token }}
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         run: python3 scripts/sync_github_governance.py --mode apply --confirm "${{ inputs.confirmation }}"
-      - name: Set native Project field values
-        env:
-          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-        run: python3 scripts/sync_project_fields.py
       - name: Reconcile issue structure and roadmap
         env:
           REPO_TOKEN: ${{ github.token }}

@@ -29,6 +29,17 @@ def gh(token: str, *args: str):
     if result.returncode: raise SyncError(result.stderr)
     return json.loads(result.stdout)
 
+def resolve_project_owner_args(project_token: str, number: str, owner: str):
+    preferred_owner_args=["--owner",owner]
+    try:
+        view=gh(project_token,"project","view",number,*preferred_owner_args)
+        return view,preferred_owner_args
+    except SyncError as exc:
+        if "unknown owner type" not in str(exc).lower(): raise
+        view=gh(project_token,"project","view",number)
+        print(f"owner flag unsupported for Project #{number}; continuing without --owner",flush=True)
+        return view,[]
+
 def values(payload, key):
     return payload if isinstance(payload,list) else payload.get(key,[])
 
@@ -53,18 +64,19 @@ def sync_relations(repo_token: str, structure: dict):
                 print(f"add blocked-by #{blocker} to #{issue}")
                 request(repo_token,"POST",f"/repos/{repo}/issues/{issue}/dependencies/blocked_by",{"issue_id":issues[blocker]["id"]},tolerate=(422,))
 
-def ensure_date_field(project_token, project, name):
-    fields=values(gh(project_token,"project","field-list",str(project["number"]),"--owner",project["owner"],"--limit","100"),"fields")
+def ensure_date_field(project_token, number, owner_args, name):
+    fields=values(gh(project_token,"project","field-list",number,*owner_args,"--limit","100"),"fields")
     found=next((f for f in fields if f["name"]==name),None)
     if found: return found
-    return gh(project_token,"project","field-create",str(project["number"]),"--owner",project["owner"],"--name",name,"--data-type","DATE")
+    return gh(project_token,"project","field-create",number,*owner_args,"--name",name,"--data-type","DATE")
 
 def sync_project(project_token: str, structure: dict, manifest: dict):
     project=structure["project"]
-    view=gh(project_token,"project","view",str(project["number"]),"--owner",project["owner"])
-    start=ensure_date_field(project_token,project,"Start date")
-    target=ensure_date_field(project_token,project,"Target date")
-    items=values(gh(project_token,"project","item-list",str(project["number"]),"--owner",project["owner"],"--limit","500"),"items")
+    number=str(project["number"])
+    view,owner_args=resolve_project_owner_args(project_token,number,project["owner"])
+    start=ensure_date_field(project_token,number,owner_args,"Start date")
+    target=ensure_date_field(project_token,number,owner_args,"Target date")
+    items=values(gh(project_token,"project","item-list",number,*owner_args,"--limit","500"),"items")
     by_number={int(i["content"]["number"]):i for i in items if (i.get("content") or {}).get("type")=="Issue"}
     releases=structure["roadmap"]["releases"]
     for number_text,definition in manifest["issues"].items():

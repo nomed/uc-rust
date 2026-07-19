@@ -1,3 +1,15 @@
+//! gRPC delivery adapter and REST-to-gRPC gateway for the Runtime Foundation.
+//!
+//! This crate is the transport boundary. It owns protobuf generation exposure,
+//! request/response mapping, W3C trace and timeout propagation, native status mapping,
+//! and process listeners. Canonical Operations remain transport-neutral and are the
+//! sole source of business semantics. Public responses must not expose provider SDK
+//! errors, stack details, secrets, or protected business payloads.
+
+/// Generated protobuf types for the versioned runtime delivery contract.
+///
+/// These types are confined to this adapter crate and must not leak into canonical
+/// application or domain APIs.
 pub mod proto {
     tonic::include_proto!("uc.runtime.v1");
 }
@@ -21,6 +33,7 @@ use uc_operation::{
 };
 use uc_runtime::PingOperation;
 
+/// gRPC server implementation that maps protobuf requests into canonical Operations.
 #[derive(Clone, Default)]
 pub struct GrpcRuntimeService {
     operation: PingOperation,
@@ -77,6 +90,10 @@ fn metadata_string(metadata: &tonic::metadata::MetadataMap, key: &'static str) -
         .map(ToOwned::to_owned)
 }
 
+/// Serves the versioned gRPC runtime API until the server terminates.
+///
+/// The listener exposes delivery mapping only; canonical semantics are delegated to
+/// `uc-runtime` Operations.
 pub async fn serve_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
     tonic::transport::Server::builder()
         .add_service(RuntimeServiceServer::new(GrpcRuntimeService::default()))
@@ -113,6 +130,10 @@ struct ProblemDetails {
     correlation_id: Option<String>,
 }
 
+/// Serves the REST/JSON gateway that delegates every request to the gRPC adapter.
+///
+/// Trace context and timeout metadata are propagated to gRPC. Transport failures are
+/// mapped into safe problem details without exposing internal implementation errors.
 pub async fn serve_gateway(
     addr: SocketAddr,
     grpc_endpoint: String,
@@ -132,7 +153,13 @@ async fn gateway_ping(
     let correlation_id = request.correlation_id.clone();
     let mut client = RuntimeServiceClient::connect(state.grpc_endpoint)
         .await
-        .map_err(|_| gateway_problem(StatusCode::BAD_GATEWAY, "gRPC service unavailable", Some(correlation_id.clone())))?;
+        .map_err(|_| {
+            gateway_problem(
+                StatusCode::BAD_GATEWAY,
+                "gRPC service unavailable",
+                Some(correlation_id.clone()),
+            )
+        })?;
     let mut grpc_request = Request::new(proto::PingRequest {
         message: request.message,
         tenant_id: request.tenant_id,
@@ -222,8 +249,17 @@ mod tests {
 
     #[test]
     fn canonical_errors_map_deterministically() {
-        assert_eq!(map_error(OperationError::DeadlineExceeded).code(), tonic::Code::DeadlineExceeded);
-        assert_eq!(map_error(OperationError::Cancelled).code(), tonic::Code::Cancelled);
-        assert_eq!(map_error(OperationError::Forbidden).code(), tonic::Code::PermissionDenied);
+        assert_eq!(
+            map_error(OperationError::DeadlineExceeded).code(),
+            tonic::Code::DeadlineExceeded
+        );
+        assert_eq!(
+            map_error(OperationError::Cancelled).code(),
+            tonic::Code::Cancelled
+        );
+        assert_eq!(
+            map_error(OperationError::Forbidden).code(),
+            tonic::Code::PermissionDenied
+        );
     }
 }

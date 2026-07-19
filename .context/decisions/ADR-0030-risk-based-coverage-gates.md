@@ -1,8 +1,9 @@
-# ADR-0030: Risk-based coverage gates
+# ADR-0030 — Risk-based coverage gates
 
-## Status
-
-Accepted
+- Status: Accepted
+- Date: 2026-07-19
+- Governing issue: #72
+- Related: ADR-0028, RFC-0002
 
 ## Context
 

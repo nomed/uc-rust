@@ -16,7 +16,7 @@ pub mod proto {
 
 use proto::runtime_service_server::{RuntimeService, RuntimeServiceServer};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{metadata::MetadataValue, Request, Response, Status};
+use tonic::{Request, Response, Status, metadata::MetadataValue};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,

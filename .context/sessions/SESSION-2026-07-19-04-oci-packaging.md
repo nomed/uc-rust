@@ -4,7 +4,7 @@
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
 - Ended: in progress
-- Branch or commit: issue-82-oci-packaging / af870bd3418c0e78f9b0870782e801a0e717198f
+- Branch or commit: issue-82-oci-packaging / 98cf542e0634054ba339b4cb2fe66787322e356a
 
 ## Intent
 
@@ -20,6 +20,7 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - `.context/manifest.yaml` and `.context/templates/session.md`.
 - OCI workflow artifacts and plain-progress runtime build logs.
 - `canonical-cargo-lock` artifact from Lockfile refresh evidence #2.
+- OCI Images #19 runtime image inspection and execution evidence.
 
 ## Actions
 
@@ -30,32 +31,33 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Removed release-version fallbacks from Dockerfiles; builds require an explicit `VERSION`.
 - Added `amd64` and `arm64` image builds, image contract inspection, read-only filesystem execution tests and bounded shutdown checks.
 - Added full plain-progress runtime build logs to workflow artifacts after truncated Actions output hid the compiler failure.
-- Diagnosed the runtime image failure: `Cargo.lock` is stale relative to the workspace manifests, so `cargo build --locked` correctly refuses the build.
+- Diagnosed and repaired stale `Cargo.lock` through the governed Rust 1.85.0 workflow.
 - Added `scripts/validate_session_accountability.py` and `.github/workflows/context-accountability.yml` so every substantive pull request must update a `.context/sessions/SESSION-*.md` record.
 - Promoted the requirement into `.context/manifest.yaml` as an enforced write policy.
-- Added `.github/workflows/lockfile-refresh.yml` to regenerate the canonical lockfile with Rust 1.85.0, validate it with `cargo metadata --locked`, publish it as auditable workflow evidence, and commit it back to the PR branch when changed.
+- Added `.github/workflows/lockfile-refresh.yml` to regenerate, validate, archive, and commit the canonical lockfile.
+- Replaced the plain Tonic `serve` lifecycle with `serve_with_shutdown`, handling SIGINT and SIGTERM so container shutdown exits cleanly.
 
 ## Outcomes
 
 - Gateway image build and runtime verification are green on `linux/amd64`; multi-architecture verification continues.
-- Runtime image fails deterministically on both architectures because the committed `Cargo.lock` requires regeneration.
+- The canonical runtime image now builds successfully with `cargo build --locked` on `linux/amd64`.
+- The remaining runtime failure moved from build reproducibility to process lifecycle: Docker SIGTERM was not being handled by the Tonic server.
+- The runtime now has an explicit graceful-shutdown boundary suitable for Kubernetes and Docker.
 - CI outside the OCI workflow remains green.
 - The release version is governed from one release-please-managed file and validated against the Rust workspace version and release tag.
-- Session maintenance is no longer dependent on operator memory: the pull-request gate blocks substantive changes without a session update.
-- Canonical lockfile regeneration is reproducible, validated, archived, and now committed by the governed workflow rather than copied or edited manually.
+- Session maintenance is enforced by the pull-request gate.
 
 ## Evidence
 
 - Issue #82.
 - Draft PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `af870bd3418c0e78f9b0870782e801a0e717198f`.
-- OCI Images runs #1 through #16.
-- CI runs #424 through #439.
-- Runtime build evidence: `runtime-image-amd64` and `runtime-image-arm64` artifacts from OCI Images #10.
-- Exact build failure: `the lock file /src/Cargo.lock needs to be updated but --locked was passed`.
-- Session accountability gate: `.github/workflows/context-accountability.yml`.
-- Lockfile evidence workflow: `.github/workflows/lockfile-refresh.yml`.
-- Canonical artifact: `canonical-cargo-lock` from Lockfile refresh evidence #2.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `98cf542e0634054ba339b4cb2fe66787322e356a`.
+- OCI Images runs #1 through #19.
+- CI runs #424 through #442.
+- Context accountability #8: success.
+- Lockfile refresh evidence #5: success.
+- Runtime Foundation #86: success.
+- Runtime `amd64` build in OCI Images #19: success; shutdown verification exposed the SIGTERM lifecycle gap.
 
 ## Candidate decisions
 
@@ -65,15 +67,15 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 - Hardcoded `0.1.0-test` build metadata was discarded because release identity must come from release-please and tags.
 - A default Dockerfile version was discarded because it allowed silently mis-versioned images.
-- Initial runtime workflow logs were insufficient because GitHub truncated the failing build output; plain-progress logs are now persisted as artifacts.
-- Removing `--locked` is rejected because it would make image dependency resolution non-reproducible and conceal repository drift.
-- Manually editing or copying a partial `Cargo.lock` is rejected; the governed toolchain must generate and commit the complete canonical file.
+- Removing `--locked` was rejected because it would make image dependency resolution non-reproducible and conceal repository drift.
+- Manually editing or copying a partial `Cargo.lock` was rejected; the governed toolchain generates and commits the complete canonical file.
+- Treating SIGTERM as an external forced-kill concern was rejected; the runtime transport must own graceful process termination.
 
 ## Open questions
 
-- Confirm the workflow-authored lockfile commit and restore green runtime image builds.
+- Confirm clean runtime shutdown on both `amd64` and `arm64` after commit `98cf542e0634054ba339b4cb2fe66787322e356a`.
 - Whether the final container conformance test should use a Docker network only or additionally validate the Kubernetes manifest through a local cluster.
 
 ## Next handoff
 
-Continue on issue #82 and PR #83: confirm the canonical `Cargo.lock` commit created by the workflow, restore green runtime image builds, then add the real two-container REST → gateway → Rust/Tonic conformance test and backend-loss readiness evidence.
+Continue on issue #82 and PR #83: verify the graceful-shutdown fix on both architectures, then add the real two-container REST → gateway → Rust/Tonic conformance test and backend-loss readiness evidence.

@@ -98,8 +98,9 @@ def sync_project(project_token: str, structure: dict, manifest: dict):
         for field,value in ((start,dates["start"]),(target,dates["target"])):
             gh(project_token,"project","item-edit","--id",item["id"],"--project-id",view["id"],"--field-id",field["id"],"--date",value)
     # The user-owned Project Views API currently requires a classic user token.
+    # 404 is tolerated when the token does not have access to this endpoint.
     request(project_token,"POST",f"/users/{project['owner_id']}/projectsV2/{project['number']}/views",{
-        "name":structure["roadmap"]["view_name"],"layout":"roadmap","filter":"is:issue"},tolerate=(304,422))
+        "name":structure["roadmap"]["view_name"],"layout":"roadmap","filter":"is:issue"},tolerate=(304,404,422))
 
 def main():
     structure=json.loads(STRUCTURE.read_text())

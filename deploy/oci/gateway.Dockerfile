@@ -4,8 +4,10 @@ ARG GO_VERSION=1.24.5
 ARG DEBIAN_VERSION=bookworm-slim
 ARG BUF_VERSION=1.57.2
 
-FROM golang:${GO_VERSION}-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-bookworm AS builder
 ARG BUF_VERSION
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /src
 
 COPY buf.yaml buf.gen.yaml ./
@@ -16,7 +18,8 @@ RUN go install github.com/bufbuild/buf/cmd/buf@v${BUF_VERSION} \
     && buf generate \
     && cd gateway \
     && go mod tidy \
-    && CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/uc-gateway ./cmd/uc-gateway
+    && CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+       go build -trimpath -ldflags='-s -w' -o /out/uc-gateway ./cmd/uc-gateway
 
 FROM debian:${DEBIAN_VERSION} AS runtime
 

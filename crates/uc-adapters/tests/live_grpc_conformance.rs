@@ -6,19 +6,23 @@
 //! diagnostic context. The suite owns no business rules and must reuse canonical
 //! Runtime Foundation fixtures as it grows.
 //!
-//! The first test captures the initial red-green cycle: invalid canonical input must
-//! return `InvalidArgument` and preserve the safe correlation identifier in response
+//! The suite records behavior before implementation. The invalid-input scenario proves
+//! safe correlation metadata on failures; the success scenario requires W3C trace and
+//! correlation context to survive the real tonic boundary and return as safe response
 //! metadata.
 
 use std::{net::SocketAddr, time::Duration};
-use tonic::Request;
+use tonic::{Request, metadata::MetadataValue};
 use uc_adapters::{
     proto::{PingRequest, runtime_service_client::RuntimeServiceClient},
     serve_grpc,
 };
 
 const CORRELATION_HEADER: &str = "x-correlation-id";
-const CORRELATION_ID: &str = "grpc-live-invalid-input";
+const INVALID_CORRELATION_ID: &str = "grpc-live-invalid-input";
+const SUCCESS_CORRELATION_ID: &str = "grpc-live-success";
+const TRACEPARENT_HEADER: &str = "traceparent";
+const TRACEPARENT: &str = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
 
 #[tokio::test]
 async fn invalid_input_preserves_safe_correlation_metadata() {
@@ -31,7 +35,7 @@ async fn invalid_input_preserves_safe_correlation_metadata() {
             message: "   ".into(),
             tenant_id: "tenant-a".into(),
             identity: "live-grpc-test".into(),
-            correlation_id: CORRELATION_ID.into(),
+            correlation_id: INVALID_CORRELATION_ID.into(),
             idempotency_key: String::new(),
         }))
         .await;
@@ -45,8 +49,52 @@ async fn invalid_input_preserves_safe_correlation_metadata() {
             .metadata()
             .get(CORRELATION_HEADER)
             .and_then(|value| value.to_str().ok()),
-        Some(CORRELATION_ID),
+        Some(INVALID_CORRELATION_ID),
         "public gRPC failures must preserve the safe correlation identifier"
+    );
+}
+
+#[tokio::test]
+async fn success_preserves_correlation_and_trace_metadata() {
+    let address = reserve_loopback_address();
+    let server = tokio::spawn(async move { serve_grpc(address).await });
+    let mut client = connect_with_retry(address).await;
+    let mut request = Request::new(PingRequest {
+        message: " hello ".into(),
+        tenant_id: "tenant-a".into(),
+        identity: "live-grpc-test".into(),
+        correlation_id: SUCCESS_CORRELATION_ID.into(),
+        idempotency_key: String::new(),
+    });
+    request.metadata_mut().insert(
+        TRACEPARENT_HEADER,
+        MetadataValue::try_from(TRACEPARENT).expect("fixture traceparent must be valid metadata"),
+    );
+
+    let response = client
+        .ping(request)
+        .await
+        .expect("valid Ping input must succeed");
+
+    server.abort();
+
+    assert_eq!(response.get_ref().message, "hello");
+    assert_eq!(response.get_ref().correlation_id, SUCCESS_CORRELATION_ID);
+    assert_eq!(
+        response
+            .metadata()
+            .get(CORRELATION_HEADER)
+            .and_then(|value| value.to_str().ok()),
+        Some(SUCCESS_CORRELATION_ID),
+        "successful gRPC responses must preserve the safe correlation identifier"
+    );
+    assert_eq!(
+        response
+            .metadata()
+            .get(TRACEPARENT_HEADER)
+            .and_then(|value| value.to_str().ok()),
+        Some(TRACEPARENT),
+        "successful gRPC responses must preserve the inbound W3C trace context"
     );
 }
 

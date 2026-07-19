@@ -65,6 +65,7 @@ jobs:
           project-number: ${{ vars.YUKH_PROJECT_NUMBER }}
           policy-path: .yukh/project.yaml
           mode: dry-run
+          github-token: ${{ secrets.YUKH_PROJECT_TOKEN }}
 
   yukh-apply:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'yukh-apply' && inputs.confirm_yukh_apply

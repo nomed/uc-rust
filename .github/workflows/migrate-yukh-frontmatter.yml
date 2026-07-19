@@ -1,0 +1,157 @@
+name: Migrate Yukh issue contracts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/migrate-yukh-frontmatter.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: migrate-yukh-issue-contracts
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Normalize Yukh contracts on all issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+
+            const normalizeType = (issue, labels) => {
+              const typeLabel = labels.find((label) => label.startsWith('type:'))?.slice(5);
+              const prefix = issue.title.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase();
+              const value = typeLabel || prefix || '';
+              if (value === 'epic') return 'epic';
+              if (value === 'gate') return 'gate';
+              if (['feature', 'arch', 'architecture', 'discovery', 'domain', 'api'].includes(value)) return 'feature';
+              return 'task';
+            };
+
+            const normalizeArea = (issue, labels) => {
+              const area = labels.find((label) => label.startsWith('area:'))?.slice(5);
+              if (['governance', 'runtime', 'platform'].includes(area)) return area;
+
+              const prefix = issue.title.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() || '';
+              if (['governance', 'agentic', 'planning', 'gate'].includes(prefix)) return 'governance';
+              if (['api', 'domain', 'data', 'infra', 'security', 'test', 'runtime'].includes(prefix)) return 'runtime';
+              return 'platform';
+            };
+
+            const normalizePriority = (labels) => {
+              const priority = labels.find((label) => /^priority:P[0-3]$/.test(label));
+              return priority ? priority.slice('priority:'.length) : 'P2';
+            };
+
+            const numbersFromLine = (body, label) => {
+              const match = body.match(new RegExp(`^${label}:\\s*(.+)$`, 'im'));
+              if (!match) return [];
+              return [...match[1].matchAll(/#(\\d+)/g)].map((item) => Number(item[1]));
+            };
+
+            const scalarFromLine = (body, label) => numbersFromLine(body, label)[0];
+
+            const yamlList = (values) => `[${values.join(', ')}]`;
+
+            const allIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'all',
+              per_page: 100,
+            });
+
+            let updated = 0;
+            let unchanged = 0;
+            const failures = [];
+
+            for (const issue of allIssues) {
+              if (issue.pull_request) continue;
+
+              try {
+                const originalBody = issue.body || '';
+                const bodyWithoutContract = originalBody
+                  .replace(/<!-- yukh\r?\n[\s\S]*?\r?\n-->\s*/m, '')
+                  .replace(/^\s+/, '');
+
+                const labels = issue.labels
+                  .map((label) => typeof label === 'string' ? label : label.name)
+                  .filter(Boolean);
+
+                const kind = normalizeType(issue, labels);
+                const area = normalizeArea(issue, labels);
+                const priority = normalizePriority(labels);
+                const sizing = kind === 'epic'
+                  ? { size: 'XL', estimate: 8 }
+                  : kind === 'gate'
+                    ? { size: 'S', estimate: 2 }
+                    : kind === 'feature'
+                      ? { size: 'L', estimate: 5 }
+                      : { size: 'M', estimate: 3 };
+
+                const parent = scalarFromLine(bodyWithoutContract, 'Parent');
+                const children = numbersFromLine(bodyWithoutContract, 'Children');
+                const dependsOn = numbersFromLine(bodyWithoutContract, 'Depends on');
+                const blocks = numbersFromLine(bodyWithoutContract, 'Blocks');
+                const milestone = ['M0', 'M1'].includes(issue.milestone?.title)
+                  ? issue.milestone.title
+                  : undefined;
+
+                const lines = [
+                  '<!-- yukh',
+                  'schema: 1',
+                  `kind: ${kind}`,
+                  `area: ${area}`,
+                  `priority: ${priority}`,
+                ];
+
+                if (milestone) lines.push(`milestone: ${milestone}`);
+                if (parent && parent !== issue.number) lines.push(`parent: ${parent}`);
+                if (children.length) lines.push(`children: ${yamlList(children.filter((n) => n !== issue.number))}`);
+                if (dependsOn.length) lines.push(`depends_on: ${yamlList(dependsOn.filter((n) => n !== issue.number))}`);
+                if (blocks.length) lines.push(`blocks: ${yamlList(blocks.filter((n) => n !== issue.number))}`);
+
+                lines.push(
+                  `size: ${sizing.size}`,
+                  `estimate: ${sizing.estimate}`,
+                  `execution: ${kind === 'gate' ? 'human' : 'hybrid'}`,
+                  '-->',
+                );
+
+                const newBody = `${lines.join('\n')}\n\n${bodyWithoutContract}`.trimEnd();
+                if (newBody === originalBody.trimEnd()) {
+                  unchanged += 1;
+                  continue;
+                }
+
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                  body: newBody,
+                });
+                updated += 1;
+              } catch (error) {
+                failures.push(`#${issue.number}: ${error.message}`);
+              }
+            }
+
+            await core.summary
+              .addHeading('Yukh issue-contract migration')
+              .addTable([
+                [{ data: 'Result', header: true }, { data: 'Count', header: true }],
+                ['Updated', String(updated)],
+                ['Already normalized', String(unchanged)],
+                ['Failures', String(failures.length)],
+              ])
+              .addRaw(failures.length ? `\n${failures.join('\n')}` : '\nNo failures.')
+              .write();
+
+            if (failures.length) core.setFailed(failures.join('\n'));

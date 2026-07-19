@@ -1,0 +1,76 @@
+version: 1
+project:
+  owner: nomed
+  repository: uc-rust
+  name: UC Rust
+contract:
+  marker: yukh
+  schema: 1
+fields:
+  kind:
+    project_field: Type
+    required: true
+    values:
+      epic: Epic
+      discovery: Discovery
+      architecture: Architecture
+      governance: Governance
+      security: Security
+      planning: Planning
+      gate: Gate
+      foundation: Foundation
+      infrastructure: Infrastructure
+      feature: Feature
+      domain: Domain
+      test: Test
+  area:
+    project_field: Area
+    required: true
+    values:
+      platform: Platform
+      product: Product
+      architecture: Architecture
+      agentic-system: Agentic System
+      governance: Governance
+      security: Security
+      delivery: Delivery
+      roadmap: Roadmap
+      golden-path: Golden Path
+      basket: Basket
+      pricing: Pricing
+      checkout-order: Checkout & Order
+      economics: Economics
+  priority:
+    project_field: Priority
+    required: true
+    values:
+      P0: P0
+      P1: P1
+      P2: P2
+      P3: P3
+  size:
+    project_field: Size
+    required: false
+    values:
+      XS: XS
+      S: S
+      M: M
+      L: L
+      XL: XL
+relationships:
+  parent:
+    native: true
+  children:
+    native: true
+  depends_on:
+    native: true
+  blocks:
+    native: true
+defaults:
+  execution: hybrid
+scheduling:
+  automatic_iteration: false
+safety:
+  overwrite_human_values: false
+  fail_on_unknown_values: true
+  comment_on_validation_error: true

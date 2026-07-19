@@ -4,7 +4,7 @@
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
 - Ended: in progress
-- Branch or commit: issue-82-oci-packaging / 0fb2b6ccafad4d88dd67580b9c66648d94f5afcb
+- Branch or commit: issue-82-oci-packaging / 350424ae7a7f18adbb584229286f1769621e8e83
 
 ## Intent
 
@@ -20,7 +20,7 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - `.context/manifest.yaml` and `.context/templates/session.md`.
 - OCI workflow artifacts and plain-progress runtime build logs.
 - `canonical-cargo-lock` artifact from Lockfile refresh evidence #2.
-- OCI Images #19 and #21 runtime image inspection, execution, and graceful-shutdown evidence.
+- OCI Images #19, #21, and #23 image inspection, execution, graceful-shutdown, and packaged conformance evidence.
 
 ## Actions
 
@@ -43,27 +43,26 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 ## Outcomes
 
-- Runtime image build, immutable contract inspection, non-root execution, read-only filesystem compatibility, and graceful shutdown are green on both `linux/amd64` and `linux/arm64`.
-- Gateway image is green on `linux/amd64`; the isolated `linux/arm64` build job is still running under QEMU retry.
-- Container conformance verifies REST → generated Go gateway → Rust/Tonic using the packaged artifacts rather than host-built processes.
-- The conformance evidence includes health/readiness, success response normalization, correlation and trace metadata propagation, canonical invalid-request mapping, backend-loss readiness `503`, and process logs.
-- The Kubernetes example now consumes a valid, directly applicable shared release tag instead of relying on unsupported shell interpolation in raw YAML.
+- Runtime image build, immutable contract inspection, non-root execution, read-only filesystem compatibility, and graceful shutdown are green on `linux/amd64`; the latest `linux/arm64` verification is still running.
+- Gateway image is green on `linux/amd64`; the latest `linux/arm64` verification is still running under QEMU.
+- Packaged container conformance is green on OCI Images #23, including REST → generated gateway → Rust/Tonic, correlation and trace metadata, canonical errors, and backend-loss readiness `503`.
+- The Kubernetes example consumes a directly applicable shared release tag and is validated by gRPC Gateway #33.
+- CI #446, Runtime Foundation #90, gRPC Gateway #33, Lockfile refresh evidence #9, and Context accountability #12 are green.
 - Runtime and gateway image tags, Deployment/Pod labels, and Service labels are governed by the same release-please version update.
-- CI outside the OCI workflow remains green.
 - Session maintenance is enforced by the pull-request gate.
 
 ## Evidence
 
 - Issue #82.
 - Draft PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `0fb2b6ccafad4d88dd67580b9c66648d94f5afcb`.
-- OCI Images runs #1 through #21.
-- CI runs #424 through #444.
-- Context accountability #10: success.
-- Lockfile refresh evidence #7: success.
-- Runtime Foundation #88: success.
-- gRPC Gateway #31: success.
-- Runtime `amd64` and `arm64` jobs in OCI Images #21: success.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `350424ae7a7f18adbb584229286f1769621e8e83`.
+- OCI Images runs #1 through #23.
+- OCI Images #23 containerized REST to gRPC conformance: success.
+- CI #446: success.
+- Context accountability #12: success.
+- Lockfile refresh evidence #9: success.
+- Runtime Foundation #90: success.
+- gRPC Gateway #33: success.
 - OCI evidence artifact contract: `oci-container-conformance`.
 - Kubernetes release contract: `deploy/kubernetes/runtime-gateway.yaml` plus release-please generic extra-file registration.
 
@@ -83,9 +82,8 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 ## Open questions
 
-- Confirm the retried `gateway (arm64)` job is green or capture a deterministic failure if it recurs.
-- Validate the new container conformance and Kubernetes release contract gates on the latest branch head.
+- Confirm the latest `runtime (arm64)` and `gateway (arm64)` jobs in OCI Images #23 complete successfully.
 
 ## Next handoff
 
-Continue on issue #82 and PR #83: verify all latest gates, diagnose any deterministic gateway arm64 or packaged conformance failure, then finalize the PR for review and merge.
+Continue on issue #82 and PR #83: wait for the two remaining arm64 jobs in OCI Images #23, then mark the PR ready and merge if the full gate set is green.

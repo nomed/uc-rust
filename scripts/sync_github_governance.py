@@ -257,18 +257,29 @@ def gh_json(args: list[str], project_token: str) -> Any:
     return json.loads(completed.stdout)
 
 
+def owner_candidates(owner: str) -> list[list[str]]:
+    candidates: list[list[str]] = [["--owner", owner]]
+    if owner != "@me":
+        candidates.append(["--owner", "@me"])
+    candidates.append([])
+    return candidates
+
+
 def resolve_project_owner_args(number: str, owner: str, project_token: str) -> tuple[dict[str, Any], list[str]]:
-    preferred_owner_args = ["--owner", owner]
-    try:
-        project_view = gh_json(["project", "view", number, *preferred_owner_args], project_token)
-        return project_view, preferred_owner_args
-    except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").lower()
-        if "unknown owner type" not in stderr:
-            raise
-        project_view = gh_json(["project", "view", number], project_token)
-        log(f"[INFO] Project owner flag is unsupported for this token context; continuing without --owner for Project #{number}")
-        return project_view, []
+    failures: list[subprocess.CalledProcessError] = []
+    for owner_args in owner_candidates(owner):
+        try:
+            project_view = gh_json(["project", "view", number, *owner_args], project_token)
+            if owner_args != ["--owner", owner]:
+                if owner_args:
+                    log(f"[INFO] Project owner override {' '.join(owner_args)} succeeded for Project #{number}")
+                else:
+                    log(f"[INFO] Project owner flag is unsupported for this token context; continuing without --owner for Project #{number}")
+            return project_view, owner_args
+        except subprocess.CalledProcessError as exc:
+            failures.append(exc)
+
+    raise failures[0]
 
 
 def gh_run(args: list[str], project_token: str, apply: bool, description: str) -> Any | None:

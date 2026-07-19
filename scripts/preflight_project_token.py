@@ -21,6 +21,14 @@ def run(token: str, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def owner_candidates(owner: str) -> list[list[str]]:
+    candidates: list[list[str]] = [["--owner", owner]]
+    if owner != "@me":
+        candidates.append(["--owner", "@me"])
+    candidates.append([])
+    return candidates
+
+
 def main() -> int:
     token = os.environ.get("PROJECT_TOKEN", "")
     if not token:
@@ -34,29 +42,30 @@ def main() -> int:
     number = str(project["number"])
     owner = project["owner"]
 
-    preferred = run(token, "project", "view", number, "--owner", owner)
-    if preferred.returncode == 0:
-        return 0
-
-    if "unknown owner type" in (preferred.stderr or "").lower():
-        fallback = run(token, "project", "view", number)
-        if fallback.returncode == 0:
-            print(
-                f"Project owner flag is unsupported for this token context; continuing without --owner for Project #{number}",
-                flush=True,
-            )
+    failures: list[subprocess.CompletedProcess[str]] = []
+    for owner_args in owner_candidates(owner):
+        attempt = run(token, "project", "view", number, *owner_args)
+        if attempt.returncode == 0:
+            if owner_args != ["--owner", owner]:
+                if owner_args:
+                    print(
+                        f"Project owner override {' '.join(owner_args)} succeeded for Project #{number}",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        f"Project owner flag is unsupported for this token context; continuing without --owner for Project #{number}",
+                        flush=True,
+                    )
             return 0
-        print(
-            fallback.stderr.strip() or "PROJECT_TOKEN cannot access the configured project",
-            file=sys.stderr,
-        )
-        return fallback.returncode
+        failures.append(attempt)
 
-    print(
-        preferred.stderr.strip() or "PROJECT_TOKEN cannot access the configured project",
-        file=sys.stderr,
+    message = next(
+        (failed.stderr.strip() for failed in failures if failed.stderr and failed.stderr.strip()),
+        "PROJECT_TOKEN cannot access the configured project",
     )
-    return preferred.returncode
+    print(message, file=sys.stderr)
+    return failures[0].returncode if failures else 1
 
 
 if __name__ == "__main__":

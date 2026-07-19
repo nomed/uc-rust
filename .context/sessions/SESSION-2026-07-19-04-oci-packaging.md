@@ -4,7 +4,7 @@
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
 - Ended: in progress
-- Branch or commit: issue-82-oci-packaging / 2b0a9667745c81e7180a3b2d400410e3f60a6bb2
+- Branch or commit: issue-82-oci-packaging / 15f89d8e000307c0b48c51677bdded6721a2f5bf
 
 ## Intent
 
@@ -32,25 +32,28 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Diagnosed the runtime image failure: `Cargo.lock` is stale relative to the workspace manifests, so `cargo build --locked` correctly refuses the build.
 - Added `scripts/validate_session_accountability.py` and `.github/workflows/context-accountability.yml` so every substantive pull request must update a `.context/sessions/SESSION-*.md` record.
 - Promoted the requirement into `.context/manifest.yaml` as an enforced write policy.
+- Added `.github/workflows/lockfile-refresh.yml` to regenerate the canonical lockfile with Rust 1.85.0, validate it with `cargo metadata --locked`, and publish it as auditable workflow evidence before committing it.
 
 ## Outcomes
 
-- Gateway image build and runtime verification are green on `linux/amd64`; the multi-architecture run remains in progress.
+- Gateway image build and runtime verification are green on `linux/amd64`; multi-architecture verification continues.
 - Runtime image fails deterministically on both architectures because the committed `Cargo.lock` requires regeneration.
 - CI outside the OCI workflow remains green.
 - The release version is governed from one release-please-managed file and validated against the Rust workspace version and release tag.
 - Session maintenance is no longer dependent on operator memory: the pull-request gate blocks substantive changes without a session update.
+- Canonical lockfile regeneration is now reproducible and isolated from the image build rather than weakening `--locked` semantics.
 
 ## Evidence
 
 - Issue #82.
 - Draft PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `2b0a9667745c81e7180a3b2d400410e3f60a6bb2`.
-- OCI Images runs #1 through #10.
-- CI runs #424 through #433.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `15f89d8e000307c0b48c51677bdded6721a2f5bf`.
+- OCI Images runs #1 through #14.
+- CI runs #424 through #437.
 - Runtime build evidence: `runtime-image-amd64` and `runtime-image-arm64` artifacts from OCI Images #10.
 - Exact build failure: `the lock file /src/Cargo.lock needs to be updated but --locked was passed`.
 - Session accountability gate: `.github/workflows/context-accountability.yml`.
+- Lockfile evidence workflow: `.github/workflows/lockfile-refresh.yml`.
 
 ## Candidate decisions
 
@@ -62,12 +65,13 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - A default Dockerfile version was discarded because it allowed silently mis-versioned images.
 - Initial runtime workflow logs were insufficient because GitHub truncated the failing build output; plain-progress logs are now persisted as artifacts.
 - Removing `--locked` is rejected because it would make image dependency resolution non-reproducible and conceal repository drift.
+- Manually editing `Cargo.lock` is rejected; the governed toolchain must generate the complete canonical file.
 
 ## Open questions
 
-- Regenerate and commit the canonical `Cargo.lock` with the governed Rust toolchain.
+- Consume the generated `canonical-cargo-lock` artifact and commit the resulting lockfile.
 - Whether the final container conformance test should use a Docker network only or additionally validate the Kubernetes manifest through a local cluster.
 
 ## Next handoff
 
-Continue on issue #82 and PR #83: regenerate and commit `Cargo.lock`, restore green runtime image builds, then add the real two-container REST → gateway → Rust/Tonic conformance test and backend-loss readiness evidence.
+Continue on issue #82 and PR #83: consume and commit the generated canonical `Cargo.lock`, restore green runtime image builds, then add the real two-container REST → gateway → Rust/Tonic conformance test and backend-loss readiness evidence.

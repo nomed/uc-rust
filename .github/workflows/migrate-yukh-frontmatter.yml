@@ -6,6 +6,8 @@ on:
     paths:
       - .github/workflows/migrate-yukh-frontmatter.yml
   workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -17,6 +19,7 @@ concurrency:
 
 jobs:
   migrate:
+    if: github.event_name != 'issue_comment' || github.event.comment.body == '/migrate-yukh'
     runs-on: ubuntu-latest
     steps:
       - name: Normalize Yukh contracts on all issues
@@ -39,7 +42,6 @@ jobs:
             const normalizeArea = (issue, labels) => {
               const area = labels.find((label) => label.startsWith('area:'))?.slice(5);
               if (['governance', 'runtime', 'platform'].includes(area)) return area;
-
               const prefix = issue.title.match(/^\[([^\]]+)\]/)?.[1]?.toLowerCase() || '';
               if (['governance', 'agentic', 'planning', 'gate'].includes(prefix)) return 'governance';
               if (['api', 'domain', 'data', 'infra', 'security', 'test', 'runtime'].includes(prefix)) return 'runtime';
@@ -58,7 +60,6 @@ jobs:
             };
 
             const scalarFromLine = (body, label) => numbersFromLine(body, label)[0];
-
             const yamlList = (values) => `[${values.join(', ')}]`;
 
             const allIssues = await github.paginate(github.rest.issues.listForRepo, {
@@ -74,17 +75,14 @@ jobs:
 
             for (const issue of allIssues) {
               if (issue.pull_request) continue;
-
               try {
                 const originalBody = issue.body || '';
                 const bodyWithoutContract = originalBody
                   .replace(/<!-- yukh\r?\n[\s\S]*?\r?\n-->\s*/m, '')
                   .replace(/^\s+/, '');
-
                 const labels = issue.labels
                   .map((label) => typeof label === 'string' ? label : label.name)
                   .filter(Boolean);
-
                 const kind = normalizeType(issue, labels);
                 const area = normalizeArea(issue, labels);
                 const priority = normalizePriority(labels);
@@ -95,7 +93,6 @@ jobs:
                     : kind === 'feature'
                       ? { size: 'L', estimate: 5 }
                       : { size: 'M', estimate: 3 };
-
                 const parent = scalarFromLine(bodyWithoutContract, 'Parent');
                 const children = numbersFromLine(bodyWithoutContract, 'Children');
                 const dependsOn = numbersFromLine(bodyWithoutContract, 'Depends on');
@@ -111,13 +108,11 @@ jobs:
                   `area: ${area}`,
                   `priority: ${priority}`,
                 ];
-
                 if (milestone) lines.push(`milestone: ${milestone}`);
                 if (parent && parent !== issue.number) lines.push(`parent: ${parent}`);
                 if (children.length) lines.push(`children: ${yamlList(children.filter((n) => n !== issue.number))}`);
                 if (dependsOn.length) lines.push(`depends_on: ${yamlList(dependsOn.filter((n) => n !== issue.number))}`);
                 if (blocks.length) lines.push(`blocks: ${yamlList(blocks.filter((n) => n !== issue.number))}`);
-
                 lines.push(
                   `size: ${sizing.size}`,
                   `estimate: ${sizing.estimate}`,
@@ -130,13 +125,7 @@ jobs:
                   unchanged += 1;
                   continue;
                 }
-
-                await github.rest.issues.update({
-                  owner,
-                  repo,
-                  issue_number: issue.number,
-                  body: newBody,
-                });
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, body: newBody });
                 updated += 1;
               } catch (error) {
                 failures.push(`#${issue.number}: ${error.message}`);

@@ -6,6 +6,10 @@ ARG DEBIAN_VERSION=bookworm-slim
 FROM rust:${RUST_VERSION}-bookworm AS builder
 WORKDIR /src
 
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY Cargo.toml Cargo.lock ./
 COPY apps ./apps
 COPY crates ./crates

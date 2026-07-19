@@ -153,10 +153,7 @@ impl ObservationProvenance {
             software_revision: non_blank(software_revision, "software revision")?,
             deployment_profile: non_blank(deployment_profile, "deployment profile")?,
             workload_id: non_blank(workload_id, "workload identifier")?,
-            costing_policy_revision: non_blank(
-                costing_policy_revision,
-                "costing-policy revision",
-            )?,
+            costing_policy_revision: non_blank(costing_policy_revision, "costing-policy revision")?,
             rate_card_revision,
             confidence,
         })

@@ -1,4 +1,4 @@
-//! Economics by Design measurement harness for the durable SQLite sync adapter.
+//! Economics by Design measurement harness for the durable `SQLite` sync adapter.
 //!
 //! The harness records directly observable workload facts and keeps inferred
 //! database-operation counts explicitly classified as attributed values. It does
@@ -12,9 +12,8 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use uc_economics::{
-    Confidence, ConsumptionDriverId, ConsumptionMeasurement, EconomicObservation,
-    EconomicUnitId, ObservationProvenance, OperationId, ValidationError,
-    ValueClassification,
+    Confidence, ConsumptionDriverId, ConsumptionMeasurement, EconomicObservation, EconomicUnitId,
+    ObservationProvenance, OperationId, ValidationError, ValueClassification,
 };
 use uc_sync::{AcceptResult, EdgeEvent, EdgeId, EventId};
 use uc_sync_sqlite::{SqliteSyncStore, SqliteSyncStoreError};
@@ -56,10 +55,14 @@ impl SyncWorkload {
 
     fn validate(&self) -> Result<(), HarnessError> {
         if self.event_count == 0 {
-            return Err(HarnessError::InvalidWorkload("event_count must be greater than zero"));
+            return Err(HarnessError::InvalidWorkload(
+                "event_count must be greater than zero",
+            ));
         }
         if self.payload_bytes == 0 {
-            return Err(HarnessError::InvalidWorkload("payload_bytes must be greater than zero"));
+            return Err(HarnessError::InvalidWorkload(
+                "payload_bytes must be greater than zero",
+            ));
         }
         if self.duplicate_attempts > self.event_count {
             return Err(HarnessError::InvalidWorkload(
@@ -67,10 +70,14 @@ impl SyncWorkload {
             ));
         }
         if self.software_revision.trim().is_empty() {
-            return Err(HarnessError::InvalidWorkload("software_revision must not be blank"));
+            return Err(HarnessError::InvalidWorkload(
+                "software_revision must not be blank",
+            ));
         }
         if self.deployment_profile.trim().is_empty() {
-            return Err(HarnessError::InvalidWorkload("deployment_profile must not be blank"));
+            return Err(HarnessError::InvalidWorkload(
+                "deployment_profile must not be blank",
+            ));
         }
         Ok(())
     }
@@ -115,12 +122,14 @@ impl SyncEconomicReport {
 
     /// Returns logical duplicate amplification as attempts divided by unique units.
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn delivery_amplification(&self) -> f64 {
         self.facts.delivery_attempts as f64 / self.observation.unit_count() as f64
     }
 
     /// Returns unique applied events per elapsed second.
     #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn applied_events_per_second(&self) -> f64 {
         let seconds = self.facts.elapsed.as_secs_f64();
         if seconds == 0.0 {
@@ -131,7 +140,7 @@ impl SyncEconomicReport {
     }
 }
 
-/// Executes the first durable-sync economic workload against a temporary SQLite database.
+/// Executes the first durable-sync economic workload against a temporary `SQLite` database.
 pub fn run_sync_workload(workload: &SyncWorkload) -> Result<SyncEconomicReport, HarnessError> {
     workload.validate()?;
     let path = unique_database_path();
@@ -140,8 +149,7 @@ pub fn run_sync_workload(workload: &SyncWorkload) -> Result<SyncEconomicReport, 
 
     match (result, cleanup) {
         (Ok(report), Ok(())) => Ok(report),
-        (Err(error), _) => Err(error),
-        (Ok(_), Err(error)) => Err(error),
+        (Err(error), _) | (Ok(_), Err(error)) => Err(error),
     }
 }
 
@@ -166,9 +174,12 @@ fn run_at_path(workload: &SyncWorkload, path: &Path) -> Result<SyncEconomicRepor
 
     let duplicate_start = workload.event_count - workload.duplicate_attempts;
     let mut duplicate_deliveries = 0_u64;
-    for current in pending.iter().skip(usize::try_from(duplicate_start).map_err(|_| {
-        HarnessError::InvalidWorkload("event_count exceeds addressable collection size")
-    })?) {
+    for current in pending
+        .iter()
+        .skip(usize::try_from(duplicate_start).map_err(|_| {
+            HarnessError::InvalidWorkload("event_count exceeds addressable collection size")
+        })?)
+    {
         if store.accept(current)? == AcceptResult::Duplicate {
             duplicate_deliveries = duplicate_deliveries.saturating_add(1);
         }
@@ -189,8 +200,8 @@ fn run_at_path(workload: &SyncWorkload, path: &Path) -> Result<SyncEconomicRepor
     let delivery_attempts = workload
         .event_count
         .saturating_add(workload.duplicate_attempts);
-    let logical_wan_bytes = u128::from(delivery_attempts)
-        .saturating_mul(workload.payload_bytes as u128);
+    let logical_wan_bytes =
+        u128::from(delivery_attempts).saturating_mul(workload.payload_bytes as u128);
 
     let facts = SyncRunFacts {
         applied_events,
@@ -317,7 +328,7 @@ fn remove_database_files(path: &Path) -> Result<(), HarnessError> {
 pub enum HarnessError {
     /// The workload definition is invalid.
     InvalidWorkload(&'static str),
-    /// SQLite synchronization failed.
+    /// `SQLite` synchronization failed.
     Sync(SqliteSyncStoreError),
     /// Economic contract validation failed.
     Economics(ValidationError),
@@ -375,7 +386,7 @@ mod tests {
         assert_eq!(report.facts().duplicate_deliveries, 2);
         assert_eq!(report.facts().delivery_attempts, 12);
         assert_eq!(report.facts().logical_wan_bytes, 384);
-        assert_eq!(report.delivery_amplification(), 1.2);
+        assert!((report.delivery_amplification() - 1.2_f64).abs() < f64::EPSILON);
         assert!(report.applied_events_per_second().is_sign_positive());
         assert_eq!(report.observation().measurements().len(), 6);
     }

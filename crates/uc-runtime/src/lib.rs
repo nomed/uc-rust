@@ -50,9 +50,7 @@ pub fn fixture_context(correlation_id: &str) -> ExecutionContext {
         correlation_id: correlation_id.into(),
         idempotency_key: None,
         trace: TraceContext {
-            traceparent: Some(
-                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into(),
-            ),
+            traceparent: Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into()),
             tracestate: None,
         },
         deadline: None,

@@ -1,15 +1,15 @@
-//! SQLite implementation of the basket persistence port.
+//! `SQLite` implementation of the basket persistence port.
 
 #![forbid(unsafe_code)]
 
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use uc_application::BasketRepository;
 use uc_domain::{Basket, BasketId, Money, ProductId};
 
-/// Failures produced by the SQLite basket repository.
+/// Failures produced by the `SQLite` basket repository.
 #[derive(Debug)]
 pub enum SqliteBasketRepositoryError {
-    /// SQLite rejected an operation.
+    /// `SQLite` rejected an operation.
     Database(rusqlite::Error),
     /// Stored data cannot reconstruct a valid domain aggregate.
     CorruptData(&'static str),
@@ -21,7 +21,7 @@ impl From<rusqlite::Error> for SqliteBasketRepositoryError {
     }
 }
 
-/// SQLite-backed basket repository.
+/// `SQLite`-backed basket repository.
 #[derive(Debug)]
 pub struct SqliteBasketRepository {
     connection: Connection,
@@ -50,7 +50,10 @@ impl SqliteBasketRepository {
         Ok(repository)
     }
 
-    fn write_basket(transaction: &Transaction<'_>, basket: &Basket) -> Result<(), SqliteBasketRepositoryError> {
+    fn write_basket(
+        transaction: &Transaction<'_>,
+        basket: &Basket,
+    ) -> Result<(), SqliteBasketRepositoryError> {
         transaction.execute(
             "INSERT INTO baskets (basket_id) VALUES (?1)
              ON CONFLICT(basket_id) DO NOTHING",
@@ -67,7 +70,9 @@ impl SqliteBasketRepository {
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                 params![
                     basket.id().as_str(),
-                    i64::try_from(line_no).map_err(|_| SqliteBasketRepositoryError::CorruptData("line number overflow"))?,
+                    i64::try_from(line_no).map_err(
+                        |_| SqliteBasketRepositoryError::CorruptData("line number overflow")
+                    )?,
                     line.product_id().as_str(),
                     i64::from(line.quantity()),
                     line.unit_price().minor_units(),
@@ -120,12 +125,20 @@ impl BasketRepository for SqliteBasketRepository {
             let (product_id, quantity, minor_units, currency) = row?;
             let quantity = u32::try_from(quantity)
                 .map_err(|_| SqliteBasketRepositoryError::CorruptData("quantity out of range"))?;
-            let currency: [u8; 3] = currency
-                .try_into()
-                .map_err(|_| SqliteBasketRepositoryError::CorruptData("currency must be three bytes"))?;
+            let currency: [u8; 3] = currency.try_into().map_err(|_| {
+                SqliteBasketRepositoryError::CorruptData("currency must be three bytes")
+            })?;
             basket
-                .add_product(ProductId::new(product_id), quantity, Money::new(minor_units, currency))
-                .map_err(|_| SqliteBasketRepositoryError::CorruptData("stored basket violates domain invariants"))?;
+                .add_product(
+                    ProductId::new(product_id),
+                    quantity,
+                    Money::new(minor_units, currency),
+                )
+                .map_err(|_| {
+                    SqliteBasketRepositoryError::CorruptData(
+                        "stored basket violates domain invariants",
+                    )
+                })?;
         }
         Ok(Some(basket))
     }

@@ -7,7 +7,7 @@
 
 use std::time::{Duration, Instant};
 use uc_operation::{Operation, OperationError, PingRequest};
-use uc_runtime::{fixture_context, PingOperation};
+use uc_runtime::{PingOperation, fixture_context};
 
 #[tokio::test]
 async fn success_fixture_is_canonical() {

@@ -15,10 +15,10 @@ pub mod proto {
 }
 
 use axum::{
+    Json, Router,
     extract::State,
     http::{HeaderMap, StatusCode},
     routing::post,
-    Json, Router,
 };
 use proto::{
     runtime_service_client::RuntimeServiceClient,
@@ -26,7 +26,7 @@ use proto::{
 };
 use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{metadata::MetadataValue, Request, Response, Status};
+use tonic::{Request, Response, Status, metadata::MetadataValue};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,
@@ -134,10 +134,7 @@ struct ProblemDetails {
 ///
 /// Trace context and timeout metadata are propagated to gRPC. Transport failures are
 /// mapped into safe problem details without exposing internal implementation errors.
-pub async fn serve_gateway(
-    addr: SocketAddr,
-    grpc_endpoint: String,
-) -> Result<(), std::io::Error> {
+pub async fn serve_gateway(addr: SocketAddr, grpc_endpoint: String) -> Result<(), std::io::Error> {
     let app = Router::new()
         .route("/v1/ping", post(gateway_ping))
         .with_state(GatewayState { grpc_endpoint });

@@ -8,7 +8,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use std::{path::PathBuf, process::ExitCode, time::Duration};
 use tracing_subscriber::EnvFilter;
-use uc_config::{load, CliOverrides};
+use uc_config::{CliOverrides, load};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError, PingRequest, TraceContext,
 };

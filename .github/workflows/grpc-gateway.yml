@@ -5,6 +5,7 @@ on:
     paths:
       - "proto/**"
       - "gateway/**"
+      - "deploy/kubernetes/runtime-gateway.yaml"
       - "buf.yaml"
       - "buf.gen.yaml"
       - "apps/uc-cli/**"
@@ -17,6 +18,7 @@ on:
     paths:
       - "proto/**"
       - "gateway/**"
+      - "deploy/kubernetes/runtime-gateway.yaml"
       - "buf.yaml"
       - "buf.gen.yaml"
       - "apps/uc-cli/**"
@@ -57,6 +59,18 @@ jobs:
           test -f gateway/internal/docs/spec/uc-runtime.swagger.json
           grep -q '"/v1/runtime:ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
           grep -q '"/v1/runtime/ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
+      - name: Verify single-Pod single-Service deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=deploy/kubernetes/runtime-gateway.yaml
+          test -f "$manifest"
+          test "$(grep -c '^kind: Deployment$' "$manifest")" = '1'
+          test "$(grep -c '^kind: Service$' "$manifest")" = '1'
+          grep -q 'name: runtime' "$manifest"
+          grep -q 'name: gateway' "$manifest"
+          grep -q 'path: /readyz' "$manifest"
+          grep -q 'targetPort: http' "$manifest"
       - name: Verify Go formatting
         working-directory: gateway
         shell: bash
@@ -147,6 +161,12 @@ jobs:
             http://127.0.0.1:8080/v1/runtime:ping)
           test "$cancelled_status" = '499'
           jq -e '.code == 1 and .message == "cancelled"' gateway-live-cancelled.json
+
+          kill "$rust_pid"
+          wait "$rust_pid" 2>/dev/null || true
+          readiness_status=$(curl --silent --output gateway-live-unready.txt --write-out '%{http_code}' http://127.0.0.1:8080/readyz)
+          test "$readiness_status" = '503'
+          curl --silent --fail http://127.0.0.1:8080/healthz | grep -qx 'ok'
       - name: Upload generation evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -169,6 +189,8 @@ jobs:
             gateway-live-success.json
             gateway-live-invalid.json
             gateway-live-cancelled.json
+            gateway-live-unready.txt
+            deploy/kubernetes/runtime-gateway.yaml
             dist/uc-gateway
           if-no-files-found: warn
           retention-days: 7

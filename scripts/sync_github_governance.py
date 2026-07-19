@@ -303,6 +303,25 @@ def field_options(field: dict[str, Any]) -> dict[str, str]:
     return {option["name"]: option["id"] for option in options}
 
 
+def resolve_option_id(
+    *,
+    field_name: str,
+    value: str,
+    option_ids: dict[str, str],
+    issue_number: int,
+) -> str | None:
+    option_id = option_ids.get(value)
+    if option_id is not None:
+        return option_id
+    if field_name == "Status":
+        log(
+            f"[WARN] Skip {field_name}={value} on issue #{issue_number}: "
+            "option is not available in this project's native Status field"
+        )
+        return None
+    raise GovernanceError(f"Missing option {value!r} in project field {field_name}")
+
+
 def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> None:
     if not project_token:
         raise GovernanceError(
@@ -438,9 +457,14 @@ def sync_project(manifest: dict[str, Any], project_token: str, apply: bool) -> N
                     log(f"[DRIFT] set {manifest_field_name}={value} on issue #{issue_number} after field creation")
                     continue
                 raise GovernanceError(f"Missing project field after reconciliation: {manifest_field_name}")
-            option_id = field_options(field).get(value)
+            option_id = resolve_option_id(
+                field_name=manifest_field_name,
+                value=value,
+                option_ids=field_options(field),
+                issue_number=issue_number,
+            )
             if option_id is None:
-                raise GovernanceError(f"Missing option {value!r} in project field {manifest_field_name}")
+                continue
             gh_run(
                 [
                     "project", "item-edit",

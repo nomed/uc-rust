@@ -75,6 +75,8 @@ Runs automatically after relevant changes reach `main`, and may also be started 
 
 The preflight is intentionally first: a missing or invalid Project token must not leave repository metadata updated while the Project remains stale.
 
+Native `Status` values are applied on a best-effort basis: if a configured value does not exist in the current Project `Status` options, reconciliation logs a warning and continues while still enforcing strict option matching for manifest-managed custom fields.
+
 ### Apply
 
 Runs only through manual dispatch. It requires:

@@ -2,10 +2,10 @@
 id: uc-rust:RFC-0002
 type: RFC
 schema_version: 1
-content_version: 1.1.0
+content_version: 1.2.0
 title: UC Runtime Foundation
 summary: Define the smallest shared runtime required to execute canonical UC Rust Operations consistently across central, store-edge and future runtime profiles.
-status: Reviewable for acceptance
+status: Accepted
 owners:
   - role: runtime-architecture
 authors:
@@ -41,8 +41,11 @@ relations:
     target: uc-rust:ADR-0029
 review:
   required_roles: [runtime-architecture, reliability, security]
-  reviewers: []
-  disposition: pending accountable acceptance
+  reviewers:
+    - role: project-owner
+      disposition: approved
+      at: 2026-07-19
+  disposition: accepted
 aliases:
   - RFC-0001-runtime-foundation.md
   - RFC-0001 — UC Runtime Foundation
@@ -65,6 +68,12 @@ lifecycle_events:
     actor: architecture
     rationale: Adopt gRPC-first delivery with Protocol Buffers as the primary wire contract and a REST/JSON gateway sidecar, while preserving transport-neutral canonical Operations.
     content_version: 1.1.0
+  - from: Reviewable for acceptance
+    to: Accepted
+    at: 2026-07-19
+    actor: project-owner
+    rationale: Approved with mandatory Twelve-Factor operation, deterministic typed configuration precedence, governed CLI design and Domain-Driven Design boundaries.
+    content_version: 1.2.0
 ---
 
 # RFC-0002 — UC Runtime Foundation
@@ -172,7 +181,33 @@ Every executable has one explicit composition root. It loads an accepted immutab
 
 Components declare dependencies, criticality, affected Operations, start/stop deadlines, reload class, health contribution and resource ownership. Startup follows dependency order; rollback and shutdown use reverse order.
 
-## Configuration and reload contract
+## Configuration, Twelve-Factor and reload contract
+
+Every UC Rust executable follows the Twelve-Factor configuration principle: deploy-varying configuration is externalized, explicit and never embedded in domain or application code.
+
+Configuration is resolved once at the composition root using the deterministic precedence below:
+
+```text
+built-in or schema defaults
+    < versioned configuration file
+    < environment variables
+    < CLI arguments
+```
+
+Higher-precedence sources override lower-precedence sources field by field. CLI arguments therefore win over every other source. The effective configuration is materialized as one typed, validated, immutable and redacted snapshot before runtime components are constructed.
+
+Mandatory rules:
+
+- every supported environment variable maps to a documented typed configuration field;
+- every non-secret field has an explicit schema default or a documented required-value rule in the versioned configuration contract;
+- secrets never receive insecure literal defaults; they are required or resolved through an approved secret reference/provider;
+- environment variables are read only by the configuration adapter/composition root, never by domain objects, application Operations, repositories or provider implementations;
+- unknown fields, invalid values and contradictory source combinations fail fast with actionable diagnostics;
+- the runtime can emit the effective redacted configuration, its source provenance, schema version, revision and digest;
+- configuration files are portable across environments and environment variables represent deployment overrides rather than the only discoverable configuration definition;
+- configuration schema generation and examples are part of the public operational contract.
+
+The typed settings implementation must provide Pydantic-Settings-like behavior in Rust: declarative field definitions, parsing, validation, defaults, source merging, aliases, nested structures, redaction and high-quality error reporting. The specific library is an implementation choice, but the behavior is normative.
 
 Configuration snapshots are schema-versioned, content-digested and immutable. Fields are classified as:
 
@@ -184,6 +219,40 @@ Configuration snapshots are schema-versioned, content-digested and immutable. Fi
 Reload follows prepare, validate, optional quiesce/drain, atomic commit, activate and verify. A rejected candidate leaves the current snapshot unchanged. Partial mutation and silent mixed revisions are forbidden. In-flight invocations retain the configuration and binding revisions captured at admission.
 
 Detailed semantics are governed by ADR-0025 and `docs/architecture/runtime-lifecycle-and-composition.md`. Machine-readable schemas are M1 implementation artifacts and cannot be claimed until committed and validated.
+
+## CLI contract
+
+The CLI is an official transport adapter and operational surface, not an alternative business-logic layer.
+
+- use a mature Rust CLI library with typed argument parsing, subcommands, validation, generated help and shell completion;
+- design commands deliberately around user tasks and stable nouns/verbs rather than mirroring internal modules;
+- CLI arguments participate in the configuration hierarchy and override environment variables, configuration files and defaults;
+- business commands invoke canonical Operations through the same invocation pipeline used by other adapters;
+- administrative commands invoke explicit governed application/runtime administration services and remain auditable;
+- exit codes are stable and documented;
+- human-readable output and machine-readable output such as JSON are separate explicit modes;
+- secrets are never echoed and sensitive arguments prefer file descriptor, stdin or secret-reference mechanisms over command-line exposure;
+- cancellation, deadlines, tenant, identity, correlation and idempotency semantics are preserved;
+- command handlers contain mapping and presentation logic only, never repositories, provider SDK calls or transaction scripts.
+
+## Domain-Driven Design and enterprise application patterns
+
+UC Rust implementation must preserve the architecture through deliberate Domain-Driven Design and established enterprise application patterns.
+
+Normative boundaries:
+
+- ubiquitous language and bounded contexts follow UC-BoK terminology and accepted UC Rust records;
+- domain models own business invariants and use entities, value objects, aggregates and domain events where they provide real semantic value;
+- application Operations coordinate use cases, authorization, policies and ports without absorbing domain invariants;
+- repositories expose aggregate-oriented domain ports and do not leak database records, query builders or transport DTOs;
+- persistence uses explicit Data Mapper boundaries between storage models and domain models;
+- transaction and Unit of Work ownership is explicit at the application boundary;
+- external provider and legacy models enter through Anti-Corruption Layers and never redefine canonical semantics;
+- protobuf messages, REST representations, CLI structures, persistence records and domain objects are separate models connected through explicit mapping;
+- Service Layer, Repository, Unit of Work, Data Mapper, Domain Model, Gateway and related Martin Fowler patterns are applied when they solve a demonstrated boundary or consistency problem, not as ceremonial abstractions;
+- anemic domain models, service locators, active-record leakage into the domain and transport-driven domain design are prohibited unless an accepted ADR documents a bounded exception.
+
+Architecture tests in CI must detect forbidden dependency directions, protobuf/provider leakage, direct environment reads outside configuration adapters, adapter bypass of canonical Operations and repository access from transport handlers.
 
 ## Governed Capability Realization runtime contract
 
@@ -216,6 +285,7 @@ A profile advertises eligible realization manifests and offline classes. Edge de
 - no hidden global mutable state;
 - no service locator accessible from Operations;
 - no provider SDK type in canonical Operation contracts;
+- no direct environment reads outside the configuration boundary;
 - allocation and latency budgets per invocation and realization stage;
 - startup, readiness, idle CPU and memory budgets per profile;
 - bounded quiesce, drain and shutdown deadlines;
@@ -247,6 +317,11 @@ No unresolved architectural question blocks M1. Exact physical crate consolidati
 - operation contract and invocation tests;
 - lifecycle state-machine and startup rollback tests;
 - atomic configuration reload and rejected-candidate tests;
+- configuration precedence tests proving defaults < file < environment < CLI;
+- tests proving environment access is confined to configuration adapters;
+- typed configuration schema, examples, redaction and provenance evidence;
+- CLI conformance tests covering subcommands, help, completion, stable exit codes, JSON output and canonical Operation routing;
+- architecture tests proving DDD dependency direction, explicit mapping and absence of protobuf/provider/persistence leakage;
 - quiesce, drain and shutdown tests;
 - gRPC plus REST/JSON gateway over one protobuf contract;
 - an independent CLI, worker or in-process adapter calling the same Operation as gRPC;
@@ -262,4 +337,4 @@ No unresolved architectural question blocks M1. Exact physical crate consolidati
 
 ## Acceptance statement
 
-This RFC is architecturally complete and may be accepted before executable M1 proof exists. Acceptance authorizes implementation of the bounded Runtime Foundation; it does not assert that any M1 exit evidence has already been produced.
+This RFC is accepted as the authoritative architecture contract for implementation of the bounded UC Runtime Foundation. Acceptance authorizes M1 implementation under the gRPC-first delivery baseline, Twelve-Factor configuration rules, deterministic source precedence, governed CLI contract and Domain-Driven Design boundaries defined above. It does not assert that any M1 exit evidence has already been produced.

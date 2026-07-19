@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 use postgres::{Client, NoTls, Transaction};
+use std::fmt;
 use uc_application::BasketRepository;
 use uc_domain::{Basket, BasketId, Money, ProductId};
 
@@ -22,9 +23,16 @@ impl From<postgres::Error> for PostgresBasketRepositoryError {
 }
 
 /// PostgreSQL-backed basket repository.
-#[derive(Debug)]
 pub struct PostgresBasketRepository {
     client: Client,
+}
+
+impl fmt::Debug for PostgresBasketRepository {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("PostgresBasketRepository")
+            .finish_non_exhaustive()
+    }
 }
 
 impl PostgresBasketRepository {
@@ -48,7 +56,10 @@ impl PostgresBasketRepository {
         Ok(Self { client })
     }
 
-    fn write_basket(transaction: &mut Transaction<'_>, basket: &Basket) -> Result<(), PostgresBasketRepositoryError> {
+    fn write_basket(
+        transaction: &mut Transaction<'_>,
+        basket: &Basket,
+    ) -> Result<(), PostgresBasketRepositoryError> {
         transaction.execute(
             "INSERT INTO baskets (basket_id) VALUES ($1)
              ON CONFLICT (basket_id) DO NOTHING",
@@ -119,7 +130,11 @@ impl BasketRepository for PostgresBasketRepository {
                     quantity,
                     Money::new(row.get::<_, i64>(2), currency),
                 )
-                .map_err(|_| PostgresBasketRepositoryError::CorruptData("stored basket violates domain invariants"))?;
+                .map_err(|_| {
+                    PostgresBasketRepositoryError::CorruptData(
+                        "stored basket violates domain invariants",
+                    )
+                })?;
         }
         Ok(Some(basket))
     }

@@ -38,16 +38,16 @@ explicit_records:
       - RFC-0001-agentic-operating-system.md
     rationale: Earliest retained RFC-0001 reservation for the agentic operating-system proposal.
 
-  - path: .context/rfcs/RFC-0001-runtime-foundation.md
+  - path: .context/rfcs/RFC-0002-runtime-foundation.md
     id: uc-rust:RFC-0002
     type: RFC
-    status: Draft
+    status: Accepted
     disposition: collision-remap
     aliases:
       - uc-rust:RFC-0001-runtime-foundation
       - RFC-0001-runtime-foundation.md
       - RFC-0001 — UC Runtime Foundation
-    rationale: Resolves the duplicate RFC-0001 reservation while preserving the draft content and legacy locators.
+    rationale: Resolves the duplicate RFC-0001 reservation with a canonical RFC-0002 path while preserving legacy locators as aliases.
 
 validator_policy:
   legacy_files_are_schema_valid: false

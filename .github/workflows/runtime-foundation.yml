@@ -39,6 +39,11 @@ env:
     -p uc-config
     -p uc-adapters
     -p uc-cli
+  COVERAGE_PACKAGES: >-
+    -p uc-operation
+    -p uc-runtime
+    -p uc-config
+    -p uc-adapters
 
 jobs:
   rust:
@@ -74,11 +79,16 @@ jobs:
           set -o pipefail
           python3 scripts/check_rust_documentation.py 2>&1 | tee runtime-documentation.log
           RUSTDOCFLAGS='-D warnings' cargo doc $RUNTIME_PACKAGES --no-deps 2>&1 | tee runtime-rustdoc.log
-      - name: Test with exemplary coverage gate
+      - name: Test CLI composition root
         shell: bash
         run: |
           set -o pipefail
-          cargo llvm-cov $RUNTIME_PACKAGES \
+          cargo test -p uc-cli --all-targets 2>&1 | tee runtime-cli-test.log
+      - name: Test executable libraries with exemplary coverage gate
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo llvm-cov $COVERAGE_PACKAGES \
             --all-targets \
             --lcov \
             --output-path runtime-coverage.lcov \
@@ -110,6 +120,7 @@ jobs:
             runtime-clippy.log
             runtime-documentation.log
             runtime-rustdoc.log
+            runtime-cli-test.log
             runtime-test.log
             runtime-coverage.lcov
           if-no-files-found: warn

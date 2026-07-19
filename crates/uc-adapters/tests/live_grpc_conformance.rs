@@ -6,15 +6,14 @@
 //! diagnostic context. The suite owns no business rules and must reuse canonical
 //! Runtime Foundation fixtures as it grows.
 //!
-//! This file intentionally begins with a RED test: invalid canonical input must return
-//! `InvalidArgument` and preserve the safe correlation identifier in response metadata.
-//! The current adapter does not yet attach that metadata, so the test records the
-//! required behavior before the production fix.
+//! The first test captures the initial red-green cycle: invalid canonical input must
+//! return `InvalidArgument` and preserve the safe correlation identifier in response
+//! metadata.
 
 use std::{net::SocketAddr, time::Duration};
 use tonic::Request;
 use uc_adapters::{
-    proto::{PingRequest, runtime_service_client::RuntimeServiceClient},
+    proto::{runtime_service_client::RuntimeServiceClient, PingRequest},
     serve_grpc,
 };
 
@@ -59,7 +58,9 @@ fn reserve_loopback_address() -> SocketAddr {
         .expect("the reserved loopback listener must have a local address")
 }
 
-async fn connect_with_retry(address: SocketAddr) -> RuntimeServiceClient<tonic::transport::Channel> {
+async fn connect_with_retry(
+    address: SocketAddr,
+) -> RuntimeServiceClient<tonic::transport::Channel> {
     let endpoint = format!("http://{address}");
     for _ in 0..50 {
         match RuntimeServiceClient::connect(endpoint.clone()).await {

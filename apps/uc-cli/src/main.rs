@@ -56,7 +56,7 @@ async fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("{error}");
-            ExitCode::from(exit_code(&error))
+            ExitCode::from(exit_code(error.as_ref()))
         }
     }
 }

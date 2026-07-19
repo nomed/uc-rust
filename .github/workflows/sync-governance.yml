@@ -1,6 +1,8 @@
 name: Sync GitHub governance
 
 on:
+  issues:
+    types: [opened, edited, reopened]
   pull_request:
     paths:
       - governance/github-manifest.json
@@ -8,6 +10,7 @@ on:
       - scripts/sync_github_governance.py
       - scripts/sync_github_structure.py
       - scripts/sync_project_fields.py
+      - .yukh/project.yaml
       - .github/workflows/sync-governance.yml
   push:
     branches: [main]
@@ -17,6 +20,7 @@ on:
       - scripts/sync_github_governance.py
       - scripts/sync_github_structure.py
       - scripts/sync_project_fields.py
+      - .yukh/project.yaml
       - .github/workflows/sync-governance.yml
   workflow_dispatch:
     inputs:
@@ -25,7 +29,16 @@ on:
         required: true
         type: choice
         default: reconcile
-        options: [dry-run, reconcile, apply]
+        options: [dry-run, reconcile, apply, yukh-apply]
+      issue_number:
+        description: Issue number for Yukh apply
+        required: false
+        type: number
+      confirm_yukh_apply:
+        description: Confirm Yukh Project mutations
+        required: false
+        type: boolean
+        default: false
       confirmation:
         description: Type DELETE_UNMANAGED_GITHUB_METADATA only for destructive apply
         required: false
@@ -37,11 +50,38 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: github-governance
+  group: github-governance-${{ github.event.issue.number || inputs.issue_number || github.ref }}
   cancel-in-progress: false
 
 jobs:
+  yukh-dry-run:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nomed/yukh@v0.2.2
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          project-number: ${{ vars.YUKH_PROJECT_NUMBER }}
+          policy-path: .yukh/project.yaml
+          mode: dry-run
+
+  yukh-apply:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'yukh-apply' && inputs.confirm_yukh_apply
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nomed/yukh@v0.2.2
+        with:
+          issue-number: ${{ inputs.issue_number }}
+          project-number: ${{ vars.YUKH_PROJECT_NUMBER }}
+          policy-path: .yukh/project.yaml
+          mode: apply
+          apply-enabled: true
+          github-token: ${{ secrets.YUKH_PROJECT_TOKEN }}
+
   validate:
+    if: github.event_name != 'issues' && !(github.event_name == 'workflow_dispatch' && inputs.mode == 'yukh-apply')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

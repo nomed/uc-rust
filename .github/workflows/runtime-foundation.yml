@@ -1,0 +1,73 @@
+name: Runtime Foundation
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "apps/uc-cli/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - "crates/uc-config/**"
+      - "crates/uc-adapters/**"
+      - "proto/**"
+      - "buf.yaml"
+      - ".github/workflows/runtime-foundation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "apps/uc-cli/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - "crates/uc-config/**"
+      - "crates/uc-adapters/**"
+      - "proto/**"
+      - "buf.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          components: rustfmt,clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Check
+        run: cargo check --workspace --all-targets
+      - name: Test
+        run: cargo test --workspace
+      - name: Architecture boundary check
+        shell: bash
+        run: |
+          set -euo pipefail
+          violations=$(grep -R -nE 'std::env::|env::var\(' crates apps \
+            --include='*.rs' \
+            --exclude-dir=target \
+            | grep -v '^crates/uc-config/' \
+            | grep -v '^crates/uc-adapters/build.rs:' || true)
+          if [ -n "$violations" ]; then
+            echo "Direct environment access outside configuration boundary:"
+            echo "$violations"
+            exit 1
+          fi
+
+  protobuf:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf lint
+      - name: Breaking changes against main
+        if: github.event_name == 'pull_request'
+        run: buf breaking --against '.git#branch=main'

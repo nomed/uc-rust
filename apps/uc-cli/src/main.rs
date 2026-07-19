@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use std::{path::PathBuf, time::Duration};
+use std::{path::PathBuf, process::ExitCode, time::Duration};
 use tracing_subscriber::EnvFilter;
 use uc_config::{load, CliOverrides};
-use uc_operation::{ExecutionContext, Operation, PingRequest};
+use uc_operation::{
+    CancellationToken, ExecutionContext, Operation, OperationError, PingRequest, TraceContext,
+};
 use uc_runtime::PingOperation;
 
 #[derive(Parser)]
@@ -38,6 +40,10 @@ enum Command {
         identity: String,
         #[arg(long, default_value = "cli-request")]
         correlation_id: String,
+        #[arg(long)]
+        traceparent: Option<String>,
+        #[arg(long, default_value_t = 30_000)]
+        timeout_ms: u64,
     },
     ServeGrpc,
     ServeGateway,
@@ -45,7 +51,17 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> ExitCode {
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::from(exit_code(&error))
+        }
+    }
+}
+
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let effective = load(
         cli.config.as_deref(),
@@ -66,6 +82,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tenant,
             identity,
             correlation_id,
+            traceparent,
+            timeout_ms,
         } => {
             let response = PingOperation
                 .execute(
@@ -75,7 +93,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         identity,
                         correlation_id,
                         idempotency_key: None,
-                        deadline: Some(std::time::Instant::now() + Duration::from_secs(30)),
+                        trace: TraceContext {
+                            traceparent,
+                            tracestate: None,
+                        },
+                        deadline: Some(
+                            std::time::Instant::now() + Duration::from_millis(timeout_ms),
+                        ),
+                        cancellation: CancellationToken::default(),
                     },
                 )
                 .await?;
@@ -98,4 +123,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn exit_code(error: &(dyn std::error::Error + 'static)) -> u8 {
+    error
+        .downcast_ref::<OperationError>()
+        .map_or(1, |error| match error {
+            OperationError::InvalidRequest(_) => 2,
+            OperationError::Unauthorized | OperationError::Forbidden => 3,
+            OperationError::NotFound => 4,
+            OperationError::Conflict(_) => 5,
+            OperationError::DeadlineExceeded => 6,
+            OperationError::Cancelled => 7,
+            OperationError::Unavailable => 8,
+            OperationError::Internal => 1,
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn canonical_errors_have_stable_exit_codes() {
+        assert_eq!(exit_code(&OperationError::InvalidRequest("x".into())), 2);
+        assert_eq!(exit_code(&OperationError::DeadlineExceeded), 6);
+        assert_eq!(exit_code(&OperationError::Cancelled), 7);
+    }
 }

@@ -4,7 +4,7 @@
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
 - Ended: in progress
-- Branch or commit: issue-82-oci-packaging / 350424ae7a7f18adbb584229286f1769621e8e83
+- Branch or commit: issue-82-oci-packaging / 9dbb493731819ef8b21e7aa43cb6f28999c9dce7
 
 ## Intent
 
@@ -21,6 +21,7 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - OCI workflow artifacts and plain-progress runtime build logs.
 - `canonical-cargo-lock` artifact from Lockfile refresh evidence #2.
 - OCI Images #19, #21, and #23 image inspection, execution, graceful-shutdown, and packaged conformance evidence.
+- Buildx record artifact `nomed~uc-rust~5007DW.dockerbuild` from the failed gateway arm64 job in OCI Images #23.
 
 ## Actions
 
@@ -40,11 +41,14 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Replaced unresolved `${UC_RELEASE_VERSION}` placeholders in the Kubernetes example with concrete shared `0.1.0` image tags and release-please markers.
 - Added Pod/container security contexts for non-root UID/GID `10001`, read-only root filesystems, no privilege escalation, and dropped Linux capabilities.
 - Registered `deploy/kubernetes/runtime-gateway.yaml` as a release-please generic extra file so both image tags and version labels advance atomically with the release.
+- Diagnosed the gateway arm64 failure as QEMU memory pressure while four `go run` protobuf plugins were compiled concurrently during `buf generate`.
+- Moved the gateway builder to `$BUILDPLATFORM` and cross-compiled only the final binary with `TARGETOS`/`TARGETARCH`, keeping generation native and removing unnecessary QEMU execution from the build stage.
 
 ## Outcomes
 
-- Runtime image build, immutable contract inspection, non-root execution, read-only filesystem compatibility, and graceful shutdown are green on `linux/amd64`; the latest `linux/arm64` verification is still running.
-- Gateway image is green on `linux/amd64`; the latest `linux/arm64` verification is still running under QEMU.
+- Runtime image build, immutable contract inspection, non-root execution, read-only filesystem compatibility, and graceful shutdown are green on `linux/amd64`; the latest `linux/arm64` verification from OCI Images #23 was still running when the gateway failure completed.
+- Gateway image is green on `linux/amd64`.
+- Gateway arm64 failed deterministically because QEMU killed all four generator plugin processes; this is now repaired by native generation plus Go cross-compilation.
 - Packaged container conformance is green on OCI Images #23, including REST → generated gateway → Rust/Tonic, correlation and trace metadata, canonical errors, and backend-loss readiness `503`.
 - The Kubernetes example consumes a directly applicable shared release tag and is validated by gRPC Gateway #33.
 - CI #446, Runtime Foundation #90, gRPC Gateway #33, Lockfile refresh evidence #9, and Context accountability #12 are green.
@@ -55,9 +59,10 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 - Issue #82.
 - Draft PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `350424ae7a7f18adbb584229286f1769621e8e83`.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `9dbb493731819ef8b21e7aa43cb6f28999c9dce7`.
 - OCI Images runs #1 through #23.
 - OCI Images #23 containerized REST to gRPC conformance: success.
+- OCI Images #23 gateway arm64 error: `protoc-gen-go`, `protoc-gen-go-grpc`, `protoc-gen-grpc-gateway`, and `protoc-gen-openapiv2` terminated with `signal: killed` under QEMU.
 - CI #446: success.
 - Context accountability #12: success.
 - Lockfile refresh evidence #9: success.
@@ -79,11 +84,13 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Treating SIGTERM as an external forced-kill concern was rejected; the runtime transport owns graceful process termination.
 - Host-process-only REST conformance was insufficient for packaging acceptance; the final gate runs the actual OCI images over a container network.
 - Raw Kubernetes `${UC_RELEASE_VERSION}` interpolation was rejected because Kubernetes does not expand shell variables in image fields.
+- Running protobuf generator compilation under target-architecture QEMU was rejected after repeated OOM-style `signal: killed` failures; generation now runs on the native build platform.
 
 ## Open questions
 
-- Confirm the latest `runtime (arm64)` and `gateway (arm64)` jobs in OCI Images #23 complete successfully.
+- Confirm the new native-generation/cross-compilation gateway arm64 build is green.
+- Confirm runtime arm64 completes successfully on the new branch head.
 
 ## Next handoff
 
-Continue on issue #82 and PR #83: wait for the two remaining arm64 jobs in OCI Images #23, then mark the PR ready and merge if the full gate set is green.
+Continue on issue #82 and PR #83: verify the new arm64 jobs created by commit `9dbb493731819ef8b21e7aa43cb6f28999c9dce7`; if all gates are green, close this session, mark the PR ready, and merge.

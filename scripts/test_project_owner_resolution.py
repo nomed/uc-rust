@@ -53,6 +53,27 @@ class OwnerResolutionTests(unittest.TestCase):
         self.assertEqual(view["id"], "PVT_test")
         self.assertEqual(owner_args, ["--owner", "@me"])
 
+    def test_governance_skips_missing_status_option(self):
+        with patch.object(governance, "log") as log:
+            option_id = governance.resolve_option_id(
+                field_name="Status",
+                value="Blocked",
+                option_ids={"Backlog": "A"},
+                issue_number=2,
+            )
+
+        self.assertIsNone(option_id)
+        log.assert_called_once()
+
+    def test_governance_errors_for_missing_non_status_option(self):
+        with self.assertRaisesRegex(governance.GovernanceError, "Missing option 'P9' in project field Priority"):
+            governance.resolve_option_id(
+                field_name="Priority",
+                value="P9",
+                option_ids={"P0": "A"},
+                issue_number=2,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

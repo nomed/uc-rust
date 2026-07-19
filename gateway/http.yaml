@@ -1,0 +1,10 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    - selector: uc.runtime.v1.RuntimeService.Ping
+      post: /v1/runtime:ping
+      body: "*"
+      additional_bindings:
+        - get: /v1/runtime/ping

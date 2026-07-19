@@ -170,3 +170,63 @@ pub trait Operation: Send + Sync + 'static {
         context: ExecutionContext,
     ) -> Result<Self::Response, OperationError>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn context(deadline: Option<Instant>) -> ExecutionContext {
+        ExecutionContext {
+            tenant_id: "tenant-a".into(),
+            identity: "test".into(),
+            correlation_id: "corr".into(),
+            idempotency_key: None,
+            trace: TraceContext::default(),
+            deadline,
+            cancellation: CancellationToken::default(),
+        }
+    }
+
+    #[test]
+    fn operation_identifier_round_trips_static_name() {
+        let id = OperationId::new("uc.test.Operation");
+        assert_eq!(id.as_str(), "uc.test.Operation");
+    }
+
+    #[test]
+    fn cancellation_is_shared_across_clones() {
+        let token = CancellationToken::default();
+        let clone = token.clone();
+        assert!(!clone.is_cancelled());
+        token.cancel();
+        assert!(clone.is_cancelled());
+    }
+
+    #[test]
+    fn active_context_without_deadline_has_no_remaining_duration() {
+        let context = context(None);
+        assert_eq!(context.ensure_active(), Ok(()));
+        assert_eq!(context.remaining(), None);
+    }
+
+    #[test]
+    fn future_deadline_reports_remaining_time() {
+        let context = context(Some(Instant::now() + Duration::from_secs(1)));
+        assert!(context.ensure_active().is_ok());
+        assert!(context.remaining().is_some_and(|remaining| !remaining.is_zero()));
+    }
+
+    #[test]
+    fn expired_deadline_saturates_remaining_time() {
+        let context = context(Some(Instant::now() - Duration::from_millis(1)));
+        assert_eq!(context.ensure_active(), Err(OperationError::DeadlineExceeded));
+        assert_eq!(context.remaining(), Some(Duration::ZERO));
+    }
+
+    #[test]
+    fn cancellation_precedes_deadline_failure() {
+        let context = context(Some(Instant::now() - Duration::from_millis(1)));
+        context.cancellation.cancel();
+        assert_eq!(context.ensure_active(), Err(OperationError::Cancelled));
+    }
+}

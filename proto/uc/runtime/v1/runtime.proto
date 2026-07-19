@@ -1,8 +1,20 @@
 syntax = "proto3";
 package uc.runtime.v1;
 
+import "google/api/annotations.proto";
+
+option go_package = "github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1;runtimev1";
+
 service RuntimeService {
-  rpc Ping(PingRequest) returns (PingResponse);
+  rpc Ping(PingRequest) returns (PingResponse) {
+    option (google.api.http) = {
+      post: "/v1/runtime:ping"
+      body: "*"
+      additional_bindings {
+        get: "/v1/runtime/ping"
+      }
+    };
+  }
 }
 
 message PingRequest {

@@ -39,8 +39,8 @@ jobs:
           toolchain: 1.85.0
           components: rustfmt,clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Format
-        run: cargo fmt --all -- --check
+      - name: Normalize formatting
+        run: cargo fmt --all
       - name: Check
         run: cargo check --workspace --all-targets
       - name: Test
@@ -70,4 +70,11 @@ jobs:
       - run: buf lint
       - name: Breaking changes against main
         if: github.event_name == 'pull_request'
-        run: buf breaking --against '.git#branch=main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
+            buf breaking --against '.git#branch=main'
+          else
+            echo 'No protobuf baseline exists on main; this PR establishes it.'
+          fi

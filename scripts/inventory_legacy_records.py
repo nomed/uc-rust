@@ -16,7 +16,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "governance/record-migration-registry.yaml"
 ID_RE = re.compile(r"\b(ADR|RFC)-(\d{4})\b", re.IGNORECASE)
-TITLE_RE = re.compile(r"^#\s+(ADR|RFC)-\d{4}\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
+TITLE_RE = re.compile(r"^#\s+(ADR|RFC)-\d{4}\s*(?:[—-]|:)\s+(.+?)\s*$", re.MULTILINE)
 STATUS_RE = re.compile(r"^-\s*Status:\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
 
 
@@ -69,18 +69,18 @@ def classify(path: Path, registry: dict[str, Any]) -> InventoryItem:
     record_type = id_match.group(1).upper() if id_match else None
 
     title_match = TITLE_RE.search(text)
-    title = title_match.group(2).strip() if title_match else None
+    title = override.get("title") or (title_match.group(2).strip() if title_match else None)
     raw_status_match = STATUS_RE.search(text)
     raw_status = raw_status_match.group(1).strip() if raw_status_match else None
-    status = normalize_status(raw_status, registry)
+    status = override.get("status") or normalize_status(raw_status, registry)
 
     if discovered_id is None:
         diagnostics.append("missing record identifier")
     if title is None:
         diagnostics.append("missing canonical heading/title")
-    if raw_status is None:
+    if raw_status is None and override.get("status") is None:
         diagnostics.append("missing legacy Status field")
-    elif status is None:
+    elif raw_status is not None and status is None:
         diagnostics.append(f"unknown legacy status: {raw_status}")
 
     canonical_id = override.get("id")
@@ -103,7 +103,7 @@ def classify(path: Path, registry: dict[str, Any]) -> InventoryItem:
         canonical_id=canonical_id,
         record_type=override.get("type", record_type),
         title=title,
-        status=override.get("status", status),
+        status=status,
         disposition=disposition,
         aliases=aliases,
         diagnostics=tuple(diagnostics),

@@ -328,10 +328,7 @@ mod tests {
             "different-sale",
         );
 
-        assert_eq!(
-            inbox.accept(conflicting),
-            AcceptResult::SequenceConflict
-        );
+        assert_eq!(inbox.accept(conflicting), AcceptResult::SequenceConflict);
         assert_eq!(inbox.buffered_len(), 1);
     }
 
@@ -347,10 +344,7 @@ mod tests {
             "different-sale",
         );
 
-        assert_eq!(
-            inbox.accept(conflicting),
-            AcceptResult::SequenceConflict
-        );
+        assert_eq!(inbox.accept(conflicting), AcceptResult::SequenceConflict);
         assert_eq!(inbox.applied().len(), 1);
     }
 

@@ -1,12 +1,24 @@
+//! Typed Runtime Foundation configuration and provenance tracking.
+//!
+//! This crate is the only governed boundary allowed to read process environment
+//! variables. It composes immutable effective settings using the precedence
+//! `defaults < file < environment < CLI`, validates them before returning, and
+//! records the winning source for each field. It must not initialize transports,
+//! telemetry SDKs, or application Operations.
+
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::Path};
 use thiserror::Error;
 
+/// Validated runtime settings consumed by the composition root.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Settings {
+    /// Socket address on which the gRPC adapter listens.
     pub grpc_addr: String,
+    /// Socket address on which the REST gateway listens.
     pub gateway_addr: String,
+    /// Structured logging filter level.
     pub log_level: String,
 }
 
@@ -28,31 +40,51 @@ struct PartialSettings {
     log_level: Option<String>,
 }
 
+/// Optional command-line overrides applied after file and environment layers.
 #[derive(Clone, Debug, Default)]
 pub struct CliOverrides {
+    /// Optional gRPC listen address override.
     pub grpc_addr: Option<String>,
+    /// Optional REST gateway listen address override.
     pub gateway_addr: Option<String>,
+    /// Optional logging level override.
     pub log_level: Option<String>,
 }
 
+/// Validated settings together with field-level winning-source provenance.
 #[derive(Clone, Debug, Serialize)]
 pub struct EffectiveSettings {
+    /// Final validated values.
     pub values: Settings,
+    /// Winning source for every configurable field.
     pub provenance: BTreeMap<String, String>,
 }
 
+/// Failures produced while loading or validating runtime configuration.
 #[derive(Debug, Error)]
 pub enum ConfigError {
+    /// Configuration file could not be read.
     #[error("failed to read config file: {0}")]
     Io(#[from] std::io::Error),
+    /// Configuration file is not valid TOML for the known schema.
     #[error("invalid TOML configuration: {0}")]
     Toml(#[from] toml::de::Error),
+    /// A configured listener address is not a valid socket address.
     #[error("invalid socket address in {field}: {value}")]
-    InvalidAddress { field: &'static str, value: String },
+    InvalidAddress {
+        /// Name of the invalid field.
+        field: &'static str,
+        /// Rejected value.
+        value: String,
+    },
+    /// Logging level is outside the supported allow-list.
     #[error("unsupported log level: {0}")]
     InvalidLogLevel(String),
 }
 
+/// Loads, composes, validates, and returns effective runtime configuration.
+///
+/// Environment access is intentionally confined to this function's private helpers.
 pub fn load(path: Option<&Path>, cli: CliOverrides) -> Result<EffectiveSettings, ConfigError> {
     let mut settings = Settings::default();
     let mut provenance = defaults_provenance();

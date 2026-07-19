@@ -7,13 +7,15 @@ rust-version.workspace = true
 build = "build.rs"
 
 [dependencies]
-axum.workspace = true
 prost.workspace = true
-serde.workspace = true
 tokio.workspace = true
 tonic.workspace = true
+tracing.workspace = true
 uc-operation = { path = "../uc-operation" }
 uc-runtime = { path = "../uc-runtime" }
+
+[dev-dependencies]
+tracing-test.workspace = true
 
 [build-dependencies]
 protoc-bin-vendored = "3"

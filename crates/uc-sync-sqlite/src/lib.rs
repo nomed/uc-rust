@@ -1,15 +1,15 @@
-//! SQLite persistence for edge outbox and central inbox synchronization state.
+//! `SQLite` persistence for edge outbox and central inbox synchronization state.
 
 #![forbid(unsafe_code)]
 
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use std::path::Path;
 use uc_sync::{AcceptResult, EdgeEvent, EdgeId, EventId};
 
-/// Failures produced by the SQLite synchronization store.
+/// Failures produced by the `SQLite` synchronization store.
 #[derive(Debug)]
 pub enum SqliteSyncStoreError {
-    /// SQLite rejected an operation.
+    /// `SQLite` rejected an operation.
     Database(rusqlite::Error),
     /// Stored data cannot reconstruct a valid synchronization event.
     CorruptData(&'static str),
@@ -21,7 +21,7 @@ impl From<rusqlite::Error> for SqliteSyncStoreError {
     }
 }
 
-/// Durable SQLite store for edge outbox and central inbox state.
+/// Durable `SQLite` store for edge outbox and central inbox state.
 #[derive(Debug)]
 pub struct SqliteSyncStore {
     connection: Connection,
@@ -191,7 +191,11 @@ fn accept_transaction(
         return Ok(AcceptResult::Buffered);
     }
 
-    drain_ready(transaction, event.edge_id(), event.sequence().saturating_add(1))?;
+    drain_ready(
+        transaction,
+        event.edge_id(),
+        event.sequence().saturating_add(1),
+    )?;
     Ok(AcceptResult::Applied)
 }
 
@@ -243,7 +247,8 @@ fn read_inbox_events(
 }
 
 fn to_i64(value: u64) -> Result<i64, SqliteSyncStoreError> {
-    i64::try_from(value).map_err(|_| SqliteSyncStoreError::CorruptData("sequence exceeds SQLite range"))
+    i64::try_from(value)
+        .map_err(|_| SqliteSyncStoreError::CorruptData("sequence exceeds SQLite range"))
 }
 
 fn to_u64(value: i64) -> Result<u64, SqliteSyncStoreError> {
@@ -253,7 +258,10 @@ fn to_u64(value: i64) -> Result<u64, SqliteSyncStoreError> {
 #[cfg(test)]
 mod tests {
     use super::SqliteSyncStore;
-    use std::{fs, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
     use uc_sync::{AcceptResult, EdgeEvent, EdgeId, EventId};
 
     fn event(sequence: u64) -> EdgeEvent {
@@ -287,13 +295,21 @@ mod tests {
                 .pending(&EdgeId::new("store-1"))
                 .expect("backlog reloads");
             assert_eq!(pending.len(), 2);
-            assert!(restarted
-                .acknowledge(pending[0].event_id())
-                .expect("ack persists"));
+            assert!(
+                restarted
+                    .acknowledge(pending[0].event_id())
+                    .expect("ack persists")
+            );
         }
         {
             let restarted = SqliteSyncStore::open(&path).expect("store reopens again");
-            assert_eq!(restarted.pending(&EdgeId::new("store-1")).expect("reload succeeds").len(), 1);
+            assert_eq!(
+                restarted
+                    .pending(&EdgeId::new("store-1"))
+                    .expect("reload succeeds")
+                    .len(),
+                1
+            );
         }
         fs::remove_file(path).expect("temporary database removed");
     }
@@ -303,14 +319,35 @@ mod tests {
         let path = unique_database_path("inbox");
         {
             let mut store = SqliteSyncStore::open(&path).expect("store opens");
-            assert_eq!(store.accept(&event(2)).expect("event buffers"), AcceptResult::Buffered);
+            assert_eq!(
+                store.accept(&event(2)).expect("event buffers"),
+                AcceptResult::Buffered
+            );
         }
         {
             let mut restarted = SqliteSyncStore::open(&path).expect("store reopens");
-            assert_eq!(restarted.buffered(&EdgeId::new("store-1")).expect("buffer reloads").len(), 1);
-            assert_eq!(restarted.accept(&event(1)).expect("first event applies"), AcceptResult::Applied);
-            assert_eq!(restarted.applied(&EdgeId::new("store-1")).expect("applied reloads").len(), 2);
-            assert_eq!(restarted.accept(&event(2)).expect("duplicate detected"), AcceptResult::Duplicate);
+            assert_eq!(
+                restarted
+                    .buffered(&EdgeId::new("store-1"))
+                    .expect("buffer reloads")
+                    .len(),
+                1
+            );
+            assert_eq!(
+                restarted.accept(&event(1)).expect("first event applies"),
+                AcceptResult::Applied
+            );
+            assert_eq!(
+                restarted
+                    .applied(&EdgeId::new("store-1"))
+                    .expect("applied reloads")
+                    .len(),
+                2
+            );
+            assert_eq!(
+                restarted.accept(&event(2)).expect("duplicate detected"),
+                AcceptResult::Duplicate
+            );
         }
         fs::remove_file(path).expect("temporary database removed");
     }
@@ -318,7 +355,10 @@ mod tests {
     #[test]
     fn sequence_collision_is_persisted_as_conflict_without_overwrite() {
         let mut store = SqliteSyncStore::open_in_memory().expect("store opens");
-        assert_eq!(store.accept(&event(2)).expect("event buffers"), AcceptResult::Buffered);
+        assert_eq!(
+            store.accept(&event(2)).expect("event buffers"),
+            AcceptResult::Buffered
+        );
         let conflicting = EdgeEvent::new(
             EdgeId::new("store-1"),
             EventId::new("different-event"),
@@ -329,7 +369,9 @@ mod tests {
             store.accept(&conflicting).expect("conflict evaluated"),
             AcceptResult::SequenceConflict
         );
-        let buffered = store.buffered(&EdgeId::new("store-1")).expect("buffer reads");
+        let buffered = store
+            .buffered(&EdgeId::new("store-1"))
+            .expect("buffer reads");
         assert_eq!(buffered.len(), 1);
         assert_eq!(buffered[0].event_id().as_str(), "event-2");
     }

@@ -1,4 +1,4 @@
-//! PostgreSQL implementation of the basket persistence port.
+//! `PostgreSQL` implementation of the basket persistence port.
 
 #![forbid(unsafe_code)]
 
@@ -7,10 +7,10 @@ use std::fmt;
 use uc_application::BasketRepository;
 use uc_domain::{Basket, BasketId, Money, ProductId};
 
-/// Failures produced by the PostgreSQL basket repository.
+/// Failures produced by the `PostgreSQL` basket repository.
 #[derive(Debug)]
 pub enum PostgresBasketRepositoryError {
-    /// PostgreSQL rejected an operation.
+    /// `PostgreSQL` rejected an operation.
     Database(postgres::Error),
     /// Stored data cannot reconstruct a valid domain aggregate.
     CorruptData(&'static str),
@@ -22,7 +22,7 @@ impl From<postgres::Error> for PostgresBasketRepositoryError {
     }
 }
 
-/// PostgreSQL-backed basket repository.
+/// `PostgreSQL`-backed basket repository.
 pub struct PostgresBasketRepository {
     client: Client,
 }
@@ -36,7 +36,7 @@ impl fmt::Debug for PostgresBasketRepository {
 }
 
 impl PostgresBasketRepository {
-    /// Connects to PostgreSQL and applies the idempotent schema.
+    /// Connects to `PostgreSQL` and applies the idempotent schema.
     pub fn connect(connection_string: &str) -> Result<Self, PostgresBasketRepositoryError> {
         let mut client = Client::connect(connection_string, NoTls)?;
         client.batch_execute(
@@ -120,10 +120,9 @@ impl BasketRepository for PostgresBasketRepository {
         for row in rows {
             let quantity = u32::try_from(row.get::<_, i64>(1))
                 .map_err(|_| PostgresBasketRepositoryError::CorruptData("quantity out of range"))?;
-            let currency: [u8; 3] = row
-                .get::<_, Vec<u8>>(3)
-                .try_into()
-                .map_err(|_| PostgresBasketRepositoryError::CorruptData("currency must be three bytes"))?;
+            let currency: [u8; 3] = row.get::<_, Vec<u8>>(3).try_into().map_err(|_| {
+                PostgresBasketRepositoryError::CorruptData("currency must be three bytes")
+            })?;
             basket
                 .add_product(
                     ProductId::new(row.get::<_, String>(0)),

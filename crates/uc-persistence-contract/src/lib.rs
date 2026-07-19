@@ -23,13 +23,18 @@ where
         .add_product(ProductId::new("sku-1"), 2, Money::new(1_250, *b"EUR"))
         .expect("valid first basket");
     repository.save(&first).expect("first save succeeds");
-    assert_eq!(repository.load(&id).expect("first load succeeds"), Some(first));
+    assert_eq!(
+        repository.load(&id).expect("first load succeeds"),
+        Some(first)
+    );
 
     let mut replacement = Basket::new(id.clone());
     replacement
         .add_product(ProductId::new("sku-2"), 1, Money::new(999, *b"EUR"))
         .expect("valid replacement basket");
-    repository.save(&replacement).expect("replacement save succeeds");
+    repository
+        .save(&replacement)
+        .expect("replacement save succeeds");
     assert_eq!(
         repository.load(&id).expect("replacement load succeeds"),
         Some(replacement)

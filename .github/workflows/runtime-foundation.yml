@@ -11,6 +11,7 @@ on:
       - "crates/uc-config/**"
       - "crates/uc-adapters/**"
       - "proto/**"
+      - "scripts/check_rust_documentation.py"
       - "buf.yaml"
       - ".github/workflows/runtime-foundation.yml"
   push:
@@ -24,7 +25,9 @@ on:
       - "crates/uc-config/**"
       - "crates/uc-adapters/**"
       - "proto/**"
+      - "scripts/check_rust_documentation.py"
       - "buf.yaml"
+      - ".github/workflows/runtime-foundation.yml"
 
 permissions:
   contents: read
@@ -36,6 +39,11 @@ env:
     -p uc-config
     -p uc-adapters
     -p uc-cli
+  COVERAGE_PACKAGES: >-
+    -p uc-operation
+    -p uc-runtime
+    -p uc-config
+    -p uc-adapters
 
 jobs:
   rust:
@@ -45,8 +53,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.85.0
-          components: rustfmt,clippy
+          components: rustfmt,clippy,llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
       - name: Normalize formatting
         shell: bash
         run: |
@@ -57,11 +68,33 @@ jobs:
         run: |
           set -o pipefail
           cargo check $RUNTIME_PACKAGES --all-targets 2>&1 | tee runtime-check.log
-      - name: Test Runtime Foundation slice
+      - name: Clippy with warnings denied
         shell: bash
         run: |
           set -o pipefail
-          cargo test $RUNTIME_PACKAGES 2>&1 | tee runtime-test.log
+          cargo clippy $RUNTIME_PACKAGES --all-targets -- -D warnings 2>&1 | tee runtime-clippy.log
+      - name: Verify rigorous code documentation
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/check_rust_documentation.py 2>&1 | tee runtime-documentation.log
+          RUSTDOCFLAGS='-D warnings' cargo doc $RUNTIME_PACKAGES --no-deps 2>&1 | tee runtime-rustdoc.log
+      - name: Test CLI composition root
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test -p uc-cli --all-targets 2>&1 | tee runtime-cli-test.log
+      - name: Test executable libraries with exemplary coverage gate
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo llvm-cov $COVERAGE_PACKAGES \
+            --all-targets \
+            --lcov \
+            --output-path runtime-coverage.lcov \
+            --fail-under-lines 90 \
+            --fail-under-functions 90 \
+            2>&1 | tee runtime-test.log
       - name: Architecture boundary check
         shell: bash
         run: |
@@ -83,7 +116,12 @@ jobs:
           path: |
             rustfmt.patch
             runtime-check.log
+            runtime-clippy.log
+            runtime-documentation.log
+            runtime-rustdoc.log
+            runtime-cli-test.log
             runtime-test.log
+            runtime-coverage.lcov
           if-no-files-found: warn
           retention-days: 7
 
@@ -100,7 +138,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
+          if git diff --quiet origin/main...HEAD -- proto buf.yaml; then
+            echo 'No protobuf contract changes in this PR.'
+          elif git ls-tree -r origin/main --name-only | grep -q '^proto/'; then
             buf breaking --against '.git#branch=main'
           else
             echo 'No protobuf baseline exists on main; this PR establishes it.'

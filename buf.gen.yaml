@@ -8,6 +8,7 @@ plugins:
     out: gateway/gen/go
     opt:
       - paths=source_relative
+      - Muc/runtime/v1/runtime.proto=github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1
   - local:
       - go
       - run
@@ -15,6 +16,7 @@ plugins:
     out: gateway/gen/go
     opt:
       - paths=source_relative
+      - Muc/runtime/v1/runtime.proto=github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1
   - local:
       - go
       - run
@@ -22,6 +24,7 @@ plugins:
     out: gateway/gen/go
     opt:
       - paths=source_relative
+      - Muc/runtime/v1/runtime.proto=github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1
       - grpc_api_configuration=gateway/http.yaml
   - local:
       - go

@@ -178,7 +178,13 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn partial_file_inherits_defaults() {
+        unsafe {
+            std::env::remove_var("UC_GRPC_ADDR");
+            std::env::remove_var("UC_GATEWAY_ADDR");
+            std::env::remove_var("UC_LOG_LEVEL");
+        }
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("settings.toml");
         fs::write(&path, "log_level='warn'\n").unwrap();

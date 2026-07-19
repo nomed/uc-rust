@@ -215,3 +215,91 @@ jobs:
           path: oci-evidence
           if-no-files-found: warn
           retention-days: 7
+
+  container-conformance:
+    name: containerized REST to gRPC conformance
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          source deploy/oci/release.env
+          echo "version=${UC_IMAGE_VERSION}-dev.${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - name: Build deployable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build --load --platform linux/amd64 \
+            --file deploy/oci/runtime.Dockerfile \
+            --build-arg "VERSION=${{ steps.release.outputs.version }}" \
+            --build-arg "REVISION=${{ github.sha }}" \
+            --tag uc-runtime:conformance .
+          docker buildx build --load --platform linux/amd64 \
+            --file deploy/oci/gateway.Dockerfile \
+            --build-arg "VERSION=${{ steps.release.outputs.version }}" \
+            --build-arg "REVISION=${{ github.sha }}" \
+            --tag uc-gateway:conformance .
+      - name: Verify REST through packaged containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p oci-conformance
+          network="uc-conformance-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker network create "$network" >/dev/null
+          runtime=$(docker run --detach --name uc-runtime-conformance --network "$network" \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+            uc-runtime:conformance)
+          gateway=$(docker run --detach --name uc-gateway-conformance --network "$network" \
+            --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+            -e UC_GRPC_ENDPOINT=uc-runtime-conformance:50051 \
+            -p 127.0.0.1::8080 uc-gateway:conformance)
+          cleanup() {
+            docker logs "$runtime" > oci-conformance/runtime.log 2>&1 || true
+            docker logs "$gateway" > oci-conformance/gateway.log 2>&1 || true
+            docker rm --force "$gateway" "$runtime" >/dev/null 2>&1 || true
+            docker network rm "$network" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          port=$(docker port "$gateway" 8080/tcp | awk -F: '{print $NF}')
+          for _ in $(seq 1 60); do
+            if curl --silent --fail "http://127.0.0.1:${port}/readyz" >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent --fail "http://127.0.0.1:${port}/healthz" | grep -qx 'ok'
+          curl --silent --fail "http://127.0.0.1:${port}/readyz" | grep -qx 'ready'
+          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+          curl --silent --show-error --fail \
+            --dump-header oci-conformance/success.headers \
+            --output oci-conformance/success.json \
+            -H 'content-type: application/json' \
+            -H "traceparent: ${traceparent}" \
+            -H 'x-correlation-id: container-success' \
+            --data '{"message":" hello ","tenantId":"tenant-a","identity":"container-test","correlationId":"container-success"}' \
+            "http://127.0.0.1:${port}/v1/runtime:ping"
+          jq -e '.message == "hello" and .tenantId == "tenant-a" and .correlationId == "container-success"' oci-conformance/success.json
+          grep -qi '^Grpc-Metadata-X-Correlation-Id: container-success' oci-conformance/success.headers
+          grep -qi "^Grpc-Metadata-Traceparent: ${traceparent}" oci-conformance/success.headers
+          invalid_status=$(curl --silent --output oci-conformance/invalid.json --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data '{"message":"   ","tenantId":"tenant-a","identity":"container-test","correlationId":"container-invalid"}' \
+            "http://127.0.0.1:${port}/v1/runtime:ping")
+          test "$invalid_status" = '400'
+          jq -e '.code == 3 and .message == "message must not be blank"' oci-conformance/invalid.json
+          docker stop --time 10 "$runtime" >/dev/null
+          readiness_status=$(curl --silent --output oci-conformance/unready.txt --write-out '%{http_code}' "http://127.0.0.1:${port}/readyz")
+          test "$readiness_status" = '503'
+          curl --silent --fail "http://127.0.0.1:${port}/healthz" | grep -qx 'ok'
+      - name: Upload container conformance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-container-conformance
+          path: oci-conformance
+          if-no-files-found: warn
+          retention-days: 7

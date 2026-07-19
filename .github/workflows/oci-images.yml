@@ -9,17 +9,11 @@ on:
       - "crates/**"
       - "proto/**"
       - "deploy/oci/**"
+      - "release-please-config.json"
       - ".github/workflows/oci-images.yml"
   push:
     branches: [main]
-    paths:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "apps/**"
-      - "crates/**"
-      - "proto/**"
-      - "deploy/oci/**"
-      - ".github/workflows/oci-images.yml"
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -38,6 +32,27 @@ jobs:
             arch: arm64
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          source deploy/oci/release.env
+          cargo_version=$(python3 - <<'PY'
+          import tomllib
+          with open("Cargo.toml", "rb") as source:
+              print(tomllib.load(source)["workspace"]["package"]["version"])
+          PY
+          )
+          test "$UC_IMAGE_VERSION" = "$cargo_version"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            test "$tag_version" = "$UC_IMAGE_VERSION"
+            image_version="$tag_version"
+          else
+            image_version="${UC_IMAGE_VERSION}-dev.${GITHUB_SHA::12}"
+          fi
+          echo "version=$image_version" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - name: Build runtime image
@@ -49,7 +64,7 @@ jobs:
           load: true
           tags: uc-runtime:test-${{ matrix.arch }}
           build-args: |
-            VERSION=0.1.0-test
+            VERSION=${{ steps.release.outputs.version }}
             REVISION=${{ github.sha }}
       - name: Inspect immutable runtime contract
         shell: bash
@@ -59,7 +74,7 @@ jobs:
           test "$(docker image inspect --format '{{.Config.User}}' "$image")" = '10001:10001'
           test "$(docker image inspect --format '{{.Config.Entrypoint}}' "$image")" = '[/usr/local/bin/uc-runtime]'
           test "$(docker image inspect --format '{{.Config.Cmd}}' "$image")" = '[serve-grpc]'
-          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$image")" = '0.1.0-test'
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$image")" = '${{ steps.release.outputs.version }}'
           test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = '${{ github.sha }}'
           test "$(docker image inspect --format '{{index .Config.ExposedPorts "50051/tcp"}}' "$image")" = 'map[]'
       - name: Verify non-root read-only execution

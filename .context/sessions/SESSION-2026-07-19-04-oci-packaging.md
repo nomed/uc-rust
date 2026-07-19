@@ -3,8 +3,8 @@
 - Agent or operator: ChatGPT GitHub implementation agent
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
-- Ended: in progress
-- Branch or commit: issue-82-oci-packaging / 8cff8194b4127560499c0e084568cf228cda760b
+- Ended: 2026-07-19T20:25:00Z
+- Branch or commit: issue-82-oci-packaging / 146bfc718f44482e5a4edf4ccd94c6984c3d41d1
 
 ## Intent
 
@@ -22,6 +22,7 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - `canonical-cargo-lock` artifact from Lockfile refresh evidence #2.
 - Buildx record artifact `nomed~uc-rust~5007DW.dockerbuild` from the failed gateway arm64 job in OCI Images #23.
 - OCI Images #25 runtime arm64 build duration on the final documentation head.
+- OCI Images #27 cross-compiled runtime evidence on both architectures.
 
 ## Actions
 
@@ -42,29 +43,32 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Diagnosed the long Rust arm64 gate as a full release compilation under target-architecture QEMU rather than native cross-compilation.
 - Moved the Rust builder to `$BUILDPLATFORM`, added the GNU aarch64 cross-linker and target libc, selected the Rust target from `TARGETARCH`, and copied a fixed `/out/uc-runtime` artifact into the target runtime image.
 - Added BuildKit cache mounts for the Cargo registry, Git checkout cache, and target directory inside the runtime image build.
-- Returned PR #83 to Draft while the new cross-build contract is validated.
+- Kept QEMU only for execution-level validation of the resulting ARM64 container.
+- Returned PR #83 to Draft while the cross-build contract was validated.
 
 ## Outcomes
 
-- Runtime images were green on `linux/amd64` and `linux/arm64` before the optimization, including immutable contract inspection, non-root/read-only execution, and graceful shutdown.
+- Runtime images are green on `linux/amd64` and `linux/arm64` with native Rust compilation and target cross-linking.
+- Runtime immutable contract inspection, non-root/read-only execution, and graceful shutdown remain green on both architectures.
 - Gateway images are green on `linux/amd64` and `linux/arm64`, including embedded OpenAPI/Swagger verification and non-root/read-only execution.
 - Packaged container conformance is green, including success normalization, correlation and trace metadata, canonical invalid requests, and backend-loss readiness.
 - The Kubernetes example is directly applicable as one Pod with two containers and one REST Service, using release-managed shared image tags.
 - Cargo workspace version, OCI version, release tag, and Kubernetes image tags are governed as one release identity.
-- Session maintenance is enforced by CI rather than operator memory.
 - Rust compilation now executes natively on the build runner for both target architectures; QEMU remains only for target-image execution checks.
-- The new Rust cross-build is awaiting OCI workflow validation on commit `8cff8194b4127560499c0e084568cf228cda760b`.
+- OCI Images #27 completed all five jobs successfully. The ARM64 runtime no longer remained blocked for the extended QEMU compilation period observed in OCI Images #25.
+- Runtime Foundation #94 initially failed only while downloading/setup of Buf; the isolated protobuf retry completed successfully, confirming no repository defect.
+- Session maintenance is enforced by CI rather than operator memory.
 
 ## Evidence
 
 - Issue #82 and PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `8cff8194b4127560499c0e084568cf228cda760b`.
-- OCI Images #24: all five jobs successful, including runtime and gateway on both architectures and containerized REST-to-gRPC conformance.
-- CI #447: success.
-- Runtime Foundation #91: success.
-- gRPC Gateway #34: success.
-- Lockfile refresh evidence #10: success.
-- Context accountability #13: success.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `146bfc718f44482e5a4edf4ccd94c6984c3d41d1`.
+- OCI Images #27: all five jobs successful, including runtime and gateway on both architectures and containerized REST-to-gRPC conformance.
+- Runtime Foundation #94 retry: protobuf and Rust jobs successful.
+- CI #450: success.
+- gRPC Gateway #37: success.
+- Lockfile refresh evidence #13: success.
+- Context accountability #16: success.
 - OCI evidence artifact contract: `oci-container-conformance`.
 - Kubernetes release contract: `deploy/kubernetes/runtime-gateway.yaml` plus release-please generic extra-file registration.
 - Runtime cross-build implementation: `deploy/oci/runtime.Dockerfile` commit `8cff8194b4127560499c0e084568cf228cda760b`.
@@ -87,9 +91,8 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 ## Open questions
 
-- Confirm both runtime architectures build and execute correctly with native Rust cross-compilation.
-- Measure the runtime arm64 build duration against the previous QEMU-based run.
+- None for issue #82.
 
 ## Next handoff
 
-Continue on PR #83: validate the cross-compiled runtime on amd64 and arm64, close this session again with measured evidence, then return the PR to Ready and squash merge if all gates are green.
+PR #83 can return to Ready after the checks on this final session-only commit complete, then be squash merged with an expected-head SHA guard.

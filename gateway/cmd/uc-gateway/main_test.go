@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -32,8 +33,39 @@ func TestForwardedHeaderMatcher(t *testing.T) {
 	}
 }
 
+func TestReadinessRequiresReachableGrpcBackend(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	response := httptest.NewRecorder()
+	readinessHandler(listener.Addr().String())(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected ready backend, got %d", response.Code)
+	}
+
+	closedAddress := listener.Addr().String()
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	response = httptest.NewRecorder()
+	readinessHandler(closedAddress)(response, request)
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected unavailable backend, got %d", response.Code)
+	}
+}
+
 func TestDocumentationEndpoints(t *testing.T) {
-	server := httptest.NewServer(newHTTPMux(http.NotFoundHandler()))
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	server := httptest.NewServer(newHTTPMux(http.NotFoundHandler(), listener.Addr().String()))
 	defer server.Close()
 
 	response, err := http.Get(server.URL + "/openapi.json")

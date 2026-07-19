@@ -1,3 +1,10 @@
+//! Command-line composition root for the Runtime Foundation.
+//!
+//! The binary loads validated configuration, initializes process-local logging,
+//! translates CLI arguments into canonical Operation requests and execution context,
+//! and renders results as human-readable or JSON output. It owns no business rules:
+//! all semantics remain in canonical Operations, including cancellation and deadlines.
+
 use clap::{Parser, Subcommand, ValueEnum};
 use std::{path::PathBuf, process::ExitCode, time::Duration};
 use tracing_subscriber::EnvFilter;

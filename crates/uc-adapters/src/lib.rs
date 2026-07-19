@@ -34,6 +34,7 @@ use uc_operation::{
 use uc_runtime::PingOperation;
 
 const CORRELATION_HEADER: &str = "x-correlation-id";
+const TRACEPARENT_HEADER: &str = "traceparent";
 
 /// gRPC server implementation that maps protobuf requests into canonical Operations.
 #[derive(Clone, Default)]
@@ -47,7 +48,8 @@ impl RuntimeService for GrpcRuntimeService {
         &self,
         request: Request<proto::PingRequest>,
     ) -> Result<Response<proto::PingResponse>, Status> {
-        let traceparent = metadata_string(request.metadata(), "traceparent");
+        let traceparent = metadata_string(request.metadata(), TRACEPARENT_HEADER);
+        let response_traceparent = traceparent.clone();
         let tracestate = metadata_string(request.metadata(), "tracestate");
         let timeout = metadata_string(request.metadata(), "x-timeout-ms")
             .and_then(|value| value.parse::<u64>().ok())
@@ -78,11 +80,16 @@ impl RuntimeService for GrpcRuntimeService {
             .await
             .map_err(|error| map_error(error, &correlation_id))?;
 
-        Ok(Response::new(proto::PingResponse {
+        let mut response = Response::new(proto::PingResponse {
             message: response.message,
             tenant_id: response.tenant_id,
             correlation_id: response.correlation_id,
-        }))
+        });
+        insert_response_metadata(&mut response, CORRELATION_HEADER, &correlation_id);
+        if let Some(traceparent) = response_traceparent.as_deref() {
+            insert_response_metadata(&mut response, TRACEPARENT_HEADER, traceparent);
+        }
+        Ok(response)
     }
 }
 
@@ -91,6 +98,12 @@ fn metadata_string(metadata: &tonic::metadata::MetadataMap, key: &'static str) -
         .get(key)
         .and_then(|value| value.to_str().ok())
         .map(ToOwned::to_owned)
+}
+
+fn insert_response_metadata<T>(response: &mut Response<T>, key: &'static str, value: &str) {
+    if let Ok(value) = MetadataValue::try_from(value) {
+        response.metadata_mut().insert(key, value);
+    }
 }
 
 /// Serves the versioned gRPC runtime API until the server terminates.
@@ -167,7 +180,7 @@ async fn gateway_ping(
         correlation_id,
         idempotency_key: request.idempotency_key,
     });
-    copy_header_to_metadata(&headers, &mut grpc_request, "traceparent");
+    copy_header_to_metadata(&headers, &mut grpc_request, TRACEPARENT_HEADER);
     copy_header_to_metadata(&headers, &mut grpc_request, "tracestate");
     copy_header_to_metadata(&headers, &mut grpc_request, "x-timeout-ms");
 

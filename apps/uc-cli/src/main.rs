@@ -8,7 +8,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use std::{path::PathBuf, process::ExitCode, time::Duration};
 use tracing_subscriber::EnvFilter;
-use uc_config::{CliOverrides, load};
+use uc_config::{load, CliOverrides};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError, PingRequest, TraceContext,
 };
@@ -21,8 +21,6 @@ struct Cli {
     config: Option<PathBuf>,
     #[arg(long, global = true)]
     grpc_addr: Option<String>,
-    #[arg(long, global = true)]
-    gateway_addr: Option<String>,
     #[arg(long, global = true)]
     log_level: Option<String>,
     #[arg(long, global = true, value_enum, default_value_t = Output::Human)]
@@ -53,7 +51,6 @@ enum Command {
         timeout_ms: u64,
     },
     ServeGrpc,
-    ServeGateway,
     Config,
 }
 
@@ -74,7 +71,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         cli.config.as_deref(),
         CliOverrides {
             grpc_addr: cli.grpc_addr,
-            gateway_addr: cli.gateway_addr,
+            gateway_addr: None,
             log_level: cli.log_level,
         },
     )?;
@@ -121,10 +118,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::ServeGrpc => {
             uc_adapters::serve_grpc(effective.values.grpc_addr.parse()?).await?;
-        }
-        Command::ServeGateway => {
-            let endpoint = format!("http://{}", effective.values.grpc_addr);
-            uc_adapters::serve_gateway(effective.values.gateway_addr.parse()?, endpoint).await?;
         }
         Command::Config => println!("{}", serde_json::to_string_pretty(&effective)?),
     }

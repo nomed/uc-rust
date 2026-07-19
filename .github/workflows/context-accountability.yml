@@ -1,0 +1,17 @@
+name: Context accountability
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  session-record:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require session update for substantive changes
+        run: python3 scripts/validate_session_accountability.py --base-ref origin/${{ github.base_ref }}

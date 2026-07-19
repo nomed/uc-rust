@@ -19,6 +19,14 @@
           "type": "yaml",
           "path": "charts/uc-rust/Chart.yaml",
           "jsonpath": "$.appVersion"
+        },
+        {
+          "type": "generic",
+          "path": "deploy/oci/release.env"
+        },
+        {
+          "type": "generic",
+          "path": "deploy/kubernetes/runtime-gateway.yaml"
         }
       ]
     }

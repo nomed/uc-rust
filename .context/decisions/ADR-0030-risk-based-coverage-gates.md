@@ -14,7 +14,7 @@ The Runtime Foundation still needs an ambitious merge gate because it defines ca
 
 ## Decision
 
-Use **90% line, function, and region coverage** as the minimum aggregate merge gate for executable Runtime Foundation libraries:
+Use **90% line and function coverage** as the minimum aggregate merge gate for executable Runtime Foundation libraries:
 
 - `uc-operation`;
 - `uc-runtime`;
@@ -22,6 +22,8 @@ Use **90% line, function, and region coverage** as the minimum aggregate merge g
 - `uc-adapters`.
 
 The `uc-cli` binary composition root is excluded from the aggregate percentage because process startup, argument parsing, stdout/stderr, and listener lifetime are entry-point wiring rather than reusable executable semantics. It remains subject to compilation, Clippy, documentation checks, dedicated tests, and workspace integration tests. This is a scope distinction, not permission to leave CLI behavior unverified.
+
+LLVM region coverage remains diagnostic evidence but is not a merge threshold. Regions reflect compiler lowering and macro expansion as well as source decisions, so their aggregate percentage can be unstable and can reward tests that do not reduce meaningful product risk. Critical branches and semantic decisions remain subject to explicit behavior tests and review.
 
 Coverage is complemented by mandatory behavior-oriented evidence:
 
@@ -37,7 +39,8 @@ Critical semantic paths are expected to be fully covered even when aggregate pac
 
 ## Consequences
 
-- CI fails below 90% for lines, functions, or regions in the executable library scope.
+- CI fails below 90% for lines or functions in the executable library scope.
+- Region coverage is retained in generated evidence for diagnosis, not used as an aggregate pass/fail gate.
 - The CLI composition root must pass its dedicated test step even though it is outside the aggregate metric.
 - A value above 90% is desirable when produced by meaningful tests.
 - Coverage alone never proves correctness or test quality.

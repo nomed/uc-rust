@@ -2,7 +2,7 @@
 id: uc-rust:RFC-0002
 type: RFC
 schema_version: 1
-content_version: 1.0.0
+content_version: 1.1.0
 title: UC Runtime Foundation
 summary: Define the smallest shared runtime required to execute canonical UC Rust Operations consistently across central, store-edge and future runtime profiles.
 status: Reviewable for acceptance
@@ -59,6 +59,12 @@ lifecycle_events:
     actor: architecture
     rationale: Child architecture decisions ADR-0021 and ADR-0024 through ADR-0029 are accepted; scope, obligations and implementation evidence are fully dispositioned.
     content_version: 1.0.0
+  - from: Reviewable for acceptance
+    to: Reviewable for acceptance
+    at: 2026-07-19
+    actor: architecture
+    rationale: Adopt gRPC-first delivery with Protocol Buffers as the primary wire contract and a REST/JSON gateway sidecar, while preserving transport-neutral canonical Operations.
+    content_version: 1.1.0
 ---
 
 # RFC-0002 — UC Runtime Foundation
@@ -132,6 +138,23 @@ adapter decode
 ```
 
 Each stage is optional or replaceable only through an explicit contract. The pipeline cannot become a hidden business-rule engine. Delivery adapters never select realizations and Operations never receive an unrestricted service locator.
+
+## Delivery adapter baseline for M1
+
+M1 adopts **gRPC-first + REST gateway** as its primary external delivery baseline:
+
+- Protocol Buffers define the versioned wire contract for the gRPC adapter.
+- Generated protobuf types remain inside the delivery boundary and are explicitly mapped to canonical Operation inputs and outputs.
+- The application and domain layers do not depend on protobuf, gRPC, gateway or transport-specific types.
+- A REST/JSON gateway may run as a sidecar or adjacent deployment component and transcode HTTP/JSON requests to the gRPC surface.
+- REST/OpenAPI exposure must be generated from or mechanically aligned with the protobuf contract; it must not introduce a second implementation of business behavior.
+- Authentication evidence, tenant context, correlation, deadlines, cancellation, structured errors, observability and economic attribution must survive gateway and gRPC translation without semantic loss.
+- Protobuf compatibility is governed through reserved field numbers/names, explicit package and service versioning, and automated breaking-change checks in CI.
+- Gateway availability is not a prerequisite for core gRPC operability unless a runtime profile explicitly declares it.
+
+The REST gateway and the gRPC server are two transport surfaces over the same gRPC delivery path; they do **not** by themselves satisfy the M1 proof of two independent application adapters. M1 therefore also requires an independent adapter, such as CLI, worker or in-process test invocation, to execute the same canonical Operation and shared semantic fixtures.
+
+This is a delivery-profile decision, not a change to ADR-0028: other transports remain supported extension targets and no canonical Operation contract becomes protobuf-owned.
 
 ## Lifecycle and composition contract
 
@@ -225,7 +248,8 @@ No unresolved architectural question blocks M1. Exact physical crate consolidati
 - lifecycle state-machine and startup rollback tests;
 - atomic configuration reload and rejected-candidate tests;
 - quiesce, drain and shutdown tests;
-- two delivery adapters calling the same Operation;
+- gRPC plus REST/JSON gateway over one protobuf contract;
+- an independent CLI, worker or in-process adapter calling the same Operation as gRPC;
 - native and delegated realizations passing shared canonical fixtures;
 - binding tests across at least tenant and runtime-profile dimensions;
 - failure, timeout, idempotency, fallback and indeterminate-outcome tests;

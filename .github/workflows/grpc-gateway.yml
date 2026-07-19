@@ -28,8 +28,6 @@ jobs:
       - uses: bufbuild/buf-setup-action@v1
         with:
           version: "1.57.2"
-      - name: Resolve locked dependencies
-        run: buf dep update
       - name: Lint protobuf contract
         run: buf lint
       - name: Generate gateway and OpenAPI
@@ -50,7 +48,6 @@ jobs:
         with:
           name: grpc-gateway-generation
           path: |
-            buf.lock
             gateway/gen/go
             gateway/gen/openapi
           if-no-files-found: warn

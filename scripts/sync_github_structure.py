@@ -29,16 +29,27 @@ def gh(token: str, *args: str):
     if result.returncode: raise SyncError(result.stderr)
     return json.loads(result.stdout)
 
+def owner_candidates(owner: str):
+    candidates=[["--owner",owner]]
+    if owner!="@me":
+        candidates.append(["--owner","@me"])
+    candidates.append([])
+    return candidates
+
 def resolve_project_owner_args(project_token: str, number: str, owner: str):
-    preferred_owner_args=["--owner",owner]
-    try:
-        view=gh(project_token,"project","view",number,*preferred_owner_args)
-        return view,preferred_owner_args
-    except SyncError as exc:
-        if "unknown owner type" not in str(exc).lower(): raise
-        view=gh(project_token,"project","view",number)
-        print(f"owner flag unsupported for Project #{number}; continuing without --owner",flush=True)
-        return view,[]
+    failures=[]
+    for owner_args in owner_candidates(owner):
+        try:
+            view=gh(project_token,"project","view",number,*owner_args)
+            if owner_args!=["--owner",owner]:
+                if owner_args:
+                    print(f"owner override {' '.join(owner_args)} succeeded for Project #{number}",flush=True)
+                else:
+                    print(f"owner flag unsupported for Project #{number}; continuing without --owner",flush=True)
+            return view,owner_args
+        except SyncError as exc:
+            failures.append(exc)
+    raise failures[0]
 
 def values(payload, key):
     return payload if isinstance(payload,list) else payload.get(key,[])

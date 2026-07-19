@@ -1,0 +1,20 @@
+[package]
+name = "uc-adapters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+build = "build.rs"
+
+[dependencies]
+axum.workspace = true
+prost.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tonic.workspace = true
+uc-operation = { path = "../uc-operation" }
+uc-runtime = { path = "../uc-runtime" }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-build = "0.12"

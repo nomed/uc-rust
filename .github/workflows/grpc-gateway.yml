@@ -1,0 +1,196 @@
+name: gRPC Gateway
+
+on:
+  pull_request:
+    paths:
+      - "proto/**"
+      - "gateway/**"
+      - "deploy/kubernetes/runtime-gateway.yaml"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "apps/uc-cli/**"
+      - "crates/uc-adapters/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - ".github/workflows/grpc-gateway.yml"
+  push:
+    branches: [main]
+    paths:
+      - "proto/**"
+      - "gateway/**"
+      - "deploy/kubernetes/runtime-gateway.yaml"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - "apps/uc-cli/**"
+      - "crates/uc-adapters/**"
+      - "crates/uc-operation/**"
+      - "crates/uc-runtime/**"
+      - ".github/workflows/grpc-gateway.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  generate-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.5"
+          cache-dependency-path: gateway/go.mod
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.57.2"
+      - name: Lint protobuf contract
+        run: buf lint
+      - name: Generate gateway and OpenAPI
+        run: buf generate
+      - name: Verify generated contract surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f gateway/gen/go/uc/runtime/v1/runtime.pb.go
+          test -f gateway/gen/go/uc/runtime/v1/runtime_grpc.pb.go
+          test -f gateway/gen/go/uc/runtime/v1/runtime.pb.gw.go
+          test -f gateway/internal/docs/spec/uc-runtime.swagger.json
+          grep -q '"/v1/runtime:ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
+          grep -q '"/v1/runtime/ping"' gateway/internal/docs/spec/uc-runtime.swagger.json
+      - name: Verify single-Pod single-Service deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=deploy/kubernetes/runtime-gateway.yaml
+          test -f "$manifest"
+          test "$(grep -c '^kind: Deployment$' "$manifest")" = '1'
+          test "$(grep -c '^kind: Service$' "$manifest")" = '1'
+          grep -q 'name: runtime' "$manifest"
+          grep -q 'name: gateway' "$manifest"
+          grep -q 'path: /readyz' "$manifest"
+          grep -q 'targetPort: http' "$manifest"
+      - name: Verify Go formatting
+        working-directory: gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          gofmt -d cmd internal | tee gateway-format.patch
+          test ! -s gateway-format.patch
+      - name: Resolve Go module
+        working-directory: gateway
+        shell: bash
+        run: |
+          set -o pipefail
+          go mod tidy 2>&1 | tee gateway-mod.log
+      - name: Test gateway
+        working-directory: gateway
+        shell: bash
+        run: |
+          set -o pipefail
+          go test ./... 2>&1 | tee gateway-test.log
+      - name: Build gateway
+        working-directory: gateway
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ../dist
+          go build -trimpath -o ../dist/uc-gateway ./cmd/uc-gateway 2>&1 | tee gateway-build.log
+      - name: Live REST to Rust gRPC conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build -p uc-cli 2>&1 | tee gateway-rust-build.log
+
+          target/debug/uc-cli --grpc-addr 127.0.0.1:50051 serve-grpc > gateway-rust-service.log 2>&1 &
+          rust_pid=$!
+          UC_GATEWAY_ADDR=127.0.0.1:8080 \
+          UC_GRPC_ENDPOINT=127.0.0.1:50051 \
+            dist/uc-gateway > gateway-live-service.log 2>&1 &
+          gateway_pid=$!
+          cleanup() {
+            kill "$gateway_pid" "$rust_pid" 2>/dev/null || true
+            wait "$gateway_pid" "$rust_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:8080/readyz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:8080/healthz | grep -qx 'ok'
+          curl --silent --fail http://127.0.0.1:8080/readyz | grep -qx 'ready'
+          curl --silent --show-error --fail http://127.0.0.1:8080/openapi.json \
+            --output gateway-live-openapi.json
+          jq -e '.paths["/v1/runtime:ping"] != null' gateway-live-openapi.json
+          curl --silent --show-error --fail http://127.0.0.1:8080/swagger/ \
+            --output gateway-live-swagger.html
+          grep -q 'url: "/openapi.json"' gateway-live-swagger.html
+
+          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+          curl --silent --show-error --fail \
+            --dump-header gateway-live-success.headers \
+            --output gateway-live-success.json \
+            -H 'content-type: application/json' \
+            -H "traceparent: ${traceparent}" \
+            -H 'x-correlation-id: live-success' \
+            --data '{"message":" hello ","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-success"}' \
+            http://127.0.0.1:8080/v1/runtime:ping
+          jq -e '.message == "hello" and .tenantId == "tenant-a" and .correlationId == "live-success"' gateway-live-success.json
+          grep -qi '^Grpc-Metadata-X-Correlation-Id: live-success' gateway-live-success.headers
+          grep -qi "^Grpc-Metadata-Traceparent: ${traceparent}" gateway-live-success.headers
+
+          invalid_status=$(curl --silent --show-error \
+            --output gateway-live-invalid.json \
+            --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            --data '{"message":"   ","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-invalid"}' \
+            http://127.0.0.1:8080/v1/runtime:ping)
+          test "$invalid_status" = '400'
+          jq -e '.code == 3 and .message == "message must not be blank"' gateway-live-invalid.json
+
+          cancelled_status=$(curl --silent --show-error \
+            --output gateway-live-cancelled.json \
+            --write-out '%{http_code}' \
+            -H 'content-type: application/json' \
+            -H 'x-uc-cancelled: true' \
+            --data '{"message":"hello","tenantId":"tenant-a","identity":"gateway-test","correlationId":"live-cancelled"}' \
+            http://127.0.0.1:8080/v1/runtime:ping)
+          test "$cancelled_status" = '499'
+          jq -e '.code == 1 and .message == "cancelled"' gateway-live-cancelled.json
+
+          kill "$rust_pid"
+          wait "$rust_pid" 2>/dev/null || true
+          readiness_status=$(curl --silent --output gateway-live-unready.txt --write-out '%{http_code}' http://127.0.0.1:8080/readyz)
+          test "$readiness_status" = '503'
+          curl --silent --fail http://127.0.0.1:8080/healthz | grep -qx 'ok'
+      - name: Upload generation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grpc-gateway-generation
+          path: |
+            gateway/gen/go
+            gateway/internal/docs/spec/uc-runtime.swagger.json
+            gateway/go.sum
+            gateway/gateway-format.patch
+            gateway/gateway-mod.log
+            gateway/gateway-test.log
+            gateway/gateway-build.log
+            gateway-rust-build.log
+            gateway-rust-service.log
+            gateway-live-service.log
+            gateway-live-openapi.json
+            gateway-live-swagger.html
+            gateway-live-success.headers
+            gateway-live-success.json
+            gateway-live-invalid.json
+            gateway-live-cancelled.json
+            gateway-live-unready.txt
+            deploy/kubernetes/runtime-gateway.yaml
+            dist/uc-gateway
+          if-no-files-found: warn
+          retention-days: 7

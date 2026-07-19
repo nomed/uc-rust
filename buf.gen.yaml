@@ -1,0 +1,42 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/nomed/uc-rust/gateway/gen/go
+plugins:
+  - local:
+      - go
+      - run
+      - google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
+    out: gateway/gen/go
+    opt:
+      - paths=source_relative
+  - local:
+      - go
+      - run
+      - google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+    out: gateway/gen/go
+    opt:
+      - paths=source_relative
+  - local:
+      - go
+      - run
+      - github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.28.0
+    out: gateway/gen/go
+    opt:
+      - paths=source_relative
+      - grpc_api_configuration=gateway/http.yaml
+  - local:
+      - go
+      - run
+      - github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.28.0
+    out: gateway/internal/docs/spec
+    opt:
+      - grpc_api_configuration=gateway/http.yaml
+      - allow_merge=true
+      - merge_file_name=uc-runtime
+      - generate_unbound_methods=false
+inputs:
+  - directory: proto

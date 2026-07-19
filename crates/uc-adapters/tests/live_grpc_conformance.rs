@@ -13,7 +13,7 @@
 use std::{net::SocketAddr, time::Duration};
 use tonic::Request;
 use uc_adapters::{
-    proto::{runtime_service_client::RuntimeServiceClient, PingRequest},
+    proto::{PingRequest, runtime_service_client::RuntimeServiceClient},
     serve_grpc,
 };
 

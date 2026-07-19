@@ -37,6 +37,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 tonic = "0.12"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-test = "0.2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -54,18 +54,9 @@ func run() error {
 		return err
 	}
 
-	mux := http.NewServeMux()
-	mux.Handle("/", gateway)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok\n"))
-	})
-	mux.HandleFunc("GET /readyz", readinessHandler(*grpcEndpoint))
-	docs.Register(mux)
-
 	server := &http.Server{
 		Addr:              *listenAddr,
-		Handler:           mux,
+		Handler:           newHTTPMux(gateway, *grpcEndpoint),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -86,6 +77,18 @@ func run() error {
 		}
 		return err
 	}
+}
+
+func newHTTPMux(gateway http.Handler, grpcEndpoint string) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/", gateway)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	})
+	mux.HandleFunc("GET /readyz", readinessHandler(grpcEndpoint))
+	docs.Register(mux)
+	return mux
 }
 
 func readinessHandler(grpcEndpoint string) http.HandlerFunc {

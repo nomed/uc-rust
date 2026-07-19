@@ -1,0 +1,13 @@
+[package]
+name = "uc-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+uc-operation = { path = "../uc-operation" }
+
+[dev-dependencies]
+tokio.workspace = true

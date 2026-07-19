@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: nomed/yukh@v0.2.2
+      - uses: nomed/yukh@v0
         with:
           issue-number: ${{ github.event.issue.number }}
           project-number: ${{ vars.YUKH_PROJECT_NUMBER }}
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: nomed/yukh@v0.2.2
+      - uses: nomed/yukh@v0
         with:
           issue-number: ${{ inputs.issue_number }}
           project-number: ${{ vars.YUKH_PROJECT_NUMBER }}

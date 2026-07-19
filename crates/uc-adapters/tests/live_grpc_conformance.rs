@@ -11,9 +11,9 @@
 //! exhausted, and explicit caller cancellation at the delivery boundary.
 
 use std::{net::SocketAddr, time::Duration};
-use tonic::{Request, metadata::MetadataValue};
+use tonic::{metadata::MetadataValue, Request};
 use uc_adapters::{
-    proto::{PingRequest, runtime_service_client::RuntimeServiceClient},
+    proto::{runtime_service_client::RuntimeServiceClient, PingRequest},
     serve_grpc,
 };
 

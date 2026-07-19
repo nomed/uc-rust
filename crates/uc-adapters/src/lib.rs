@@ -33,6 +33,8 @@ use uc_operation::{
 };
 use uc_runtime::PingOperation;
 
+const CORRELATION_HEADER: &str = "x-correlation-id";
+
 /// gRPC server implementation that maps protobuf requests into canonical Operations.
 #[derive(Clone, Default)]
 pub struct GrpcRuntimeService {
@@ -52,6 +54,7 @@ impl RuntimeService for GrpcRuntimeService {
             .map(Duration::from_millis)
             .unwrap_or_else(|| Duration::from_secs(30));
         let request = request.into_inner();
+        let correlation_id = request.correlation_id.clone();
         let response = self
             .operation
             .execute(
@@ -73,7 +76,7 @@ impl RuntimeService for GrpcRuntimeService {
                 },
             )
             .await
-            .map_err(map_error)?;
+            .map_err(|error| map_error(error, &correlation_id))?;
 
         Ok(Response::new(proto::PingResponse {
             message: response.message,
@@ -226,8 +229,8 @@ fn grpc_status_problem(
     gateway_problem(http, status.message(), correlation_id)
 }
 
-fn map_error(error: OperationError) -> Status {
-    match error {
+fn map_error(error: OperationError, correlation_id: &str) -> Status {
+    let mut status = match error {
         OperationError::InvalidRequest(message) => Status::invalid_argument(message),
         OperationError::Unauthorized => Status::unauthenticated("unauthorized"),
         OperationError::Forbidden => Status::permission_denied("forbidden"),
@@ -237,7 +240,11 @@ fn map_error(error: OperationError) -> Status {
         OperationError::Cancelled => Status::cancelled("cancelled"),
         OperationError::Unavailable => Status::unavailable("service unavailable"),
         OperationError::Internal => Status::internal("internal operation failure"),
+    };
+    if let Ok(value) = MetadataValue::try_from(correlation_id) {
+        status.metadata_mut().insert(CORRELATION_HEADER, value);
     }
+    status
 }
 
 #[cfg(test)]
@@ -247,15 +254,15 @@ mod tests {
     #[test]
     fn canonical_errors_map_deterministically() {
         assert_eq!(
-            map_error(OperationError::DeadlineExceeded).code(),
+            map_error(OperationError::DeadlineExceeded, "corr").code(),
             tonic::Code::DeadlineExceeded
         );
         assert_eq!(
-            map_error(OperationError::Cancelled).code(),
+            map_error(OperationError::Cancelled, "corr").code(),
             tonic::Code::Cancelled
         );
         assert_eq!(
-            map_error(OperationError::Forbidden).code(),
+            map_error(OperationError::Forbidden, "corr").code(),
             tonic::Code::PermissionDenied
         );
     }

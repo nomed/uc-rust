@@ -1,3 +1,10 @@
+//! Shared semantic conformance fixtures for the canonical Ping Operation.
+//!
+//! These tests define transport-independent expected outcomes for success,
+//! validation failure, expired deadlines, and caller cancellation. Delivery adapter
+//! suites must reuse the same scenarios and compare canonical outcomes rather than
+//! serialization details or transport-specific status representations.
+
 use std::time::{Duration, Instant};
 use uc_operation::{Operation, OperationError, PingRequest};
 use uc_runtime::{fixture_context, PingOperation};

@@ -16,7 +16,8 @@ pub mod proto {
 
 use proto::runtime_service_server::{RuntimeService, RuntimeServiceServer};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{Request, Response, Status, metadata::MetadataValue};
+use tonic::{metadata::MetadataValue, Request, Response, Status};
+use tracing::{info_span, Instrument};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,
@@ -39,26 +40,28 @@ impl RuntimeService for GrpcRuntimeService {
         &self,
         request: Request<proto::PingRequest>,
     ) -> Result<Response<proto::PingResponse>, Status> {
-        let traceparent = metadata_string(request.metadata(), TRACEPARENT_HEADER);
-        let response_traceparent = traceparent.clone();
-        let tracestate = metadata_string(request.metadata(), "tracestate");
-        let timeout = metadata_string(request.metadata(), "x-timeout-ms")
-            .and_then(|value| value.parse::<u64>().ok())
-            .map(Duration::from_millis)
-            .unwrap_or_else(|| Duration::from_secs(30));
-        let cancellation = CancellationToken::default();
-        if metadata_string(request.metadata(), CANCELLATION_HEADER).as_deref() == Some("true") {
-            cancellation.cancel();
-        }
-        let request = request.into_inner();
-        let correlation_id = request.correlation_id.clone();
-        let response = self
-            .operation
-            .execute(
-                CanonicalPingRequest {
-                    message: request.message,
-                },
-                ExecutionContext {
+        let correlation_id = request.get_ref().correlation_id.clone();
+        let invocation = info_span!("invocation", correlation_id = %correlation_id);
+
+        async {
+            let (request, response_traceparent, context) = {
+                let decode = info_span!("decode");
+                let _decode_guard = decode.enter();
+                let traceparent = metadata_string(request.metadata(), TRACEPARENT_HEADER);
+                let response_traceparent = traceparent.clone();
+                let tracestate = metadata_string(request.metadata(), "tracestate");
+                let timeout = metadata_string(request.metadata(), "x-timeout-ms")
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .map(Duration::from_millis)
+                    .unwrap_or_else(|| Duration::from_secs(30));
+                let cancellation = CancellationToken::default();
+                if metadata_string(request.metadata(), CANCELLATION_HEADER).as_deref()
+                    == Some("true")
+                {
+                    cancellation.cancel();
+                }
+                let request = request.into_inner();
+                let context = ExecutionContext {
                     tenant_id: request.tenant_id,
                     identity: request.identity,
                     correlation_id: request.correlation_id,
@@ -70,21 +73,40 @@ impl RuntimeService for GrpcRuntimeService {
                     },
                     deadline: Some(std::time::Instant::now() + timeout),
                     cancellation,
-                },
-            )
-            .await
-            .map_err(|error| map_error(error, &correlation_id))?;
+                };
+                (
+                    CanonicalPingRequest {
+                        message: request.message,
+                    },
+                    response_traceparent,
+                    context,
+                )
+            };
 
-        let mut response = Response::new(proto::PingResponse {
-            message: response.message,
-            tenant_id: response.tenant_id,
-            correlation_id: response.correlation_id,
-        });
-        insert_response_metadata(&mut response, CORRELATION_HEADER, &correlation_id);
-        if let Some(traceparent) = response_traceparent.as_deref() {
-            insert_response_metadata(&mut response, TRACEPARENT_HEADER, traceparent);
+            let response = self
+                .operation
+                .execute(request, context)
+                .instrument(info_span!("operation"))
+                .await
+                .map_err(|error| map_error(error, &correlation_id))?;
+
+            let mut response = {
+                let encode = info_span!("encode");
+                let _encode_guard = encode.enter();
+                Response::new(proto::PingResponse {
+                    message: response.message,
+                    tenant_id: response.tenant_id,
+                    correlation_id: response.correlation_id,
+                })
+            };
+            insert_response_metadata(&mut response, CORRELATION_HEADER, &correlation_id);
+            if let Some(traceparent) = response_traceparent.as_deref() {
+                insert_response_metadata(&mut response, TRACEPARENT_HEADER, traceparent);
+            }
+            Ok(response)
         }
-        Ok(response)
+        .instrument(invocation)
+        .await
     }
 }
 

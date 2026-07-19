@@ -8,6 +8,9 @@ on:
       - "apps/**"
       - "crates/**"
       - "proto/**"
+      - "gateway/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
       - "deploy/oci/**"
       - "release-please-config.json"
       - ".github/workflows/oci-images.yml"
@@ -88,17 +91,17 @@ jobs:
           }
           trap cleanup EXIT
           for _ in $(seq 1 30); do
+            test "$(docker inspect --format '{{.State.Running}}' "$container")" = 'true'
+            sleep 1
             if docker logs "$container" 2>&1 | grep -q 'listening\|serve'; then
               break
             fi
-            test "$(docker inspect --format '{{.State.Running}}' "$container")" = 'true'
-            sleep 1
           done
           test "$(docker inspect --format '{{.State.Running}}' "$container")" = 'true'
           test "$(docker exec "$container" id -u)" = '10001'
           docker stop --time 10 "$container" >/dev/null
           test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = '0'
-      - name: Export inspection evidence
+      - name: Export runtime inspection evidence
         if: always()
         shell: bash
         run: |
@@ -108,6 +111,104 @@ jobs:
         if: always()
         with:
           name: runtime-image-${{ matrix.arch }}
+          path: oci-evidence
+          if-no-files-found: warn
+          retention-days: 7
+
+  gateway-image:
+    name: gateway (${{ matrix.arch }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          source deploy/oci/release.env
+          cargo_version=$(python3 - <<'PY'
+          import tomllib
+          with open("Cargo.toml", "rb") as source:
+              print(tomllib.load(source)["workspace"]["package"]["version"])
+          PY
+          )
+          test "$UC_IMAGE_VERSION" = "$cargo_version"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            test "$tag_version" = "$UC_IMAGE_VERSION"
+            image_version="$tag_version"
+          else
+            image_version="${UC_IMAGE_VERSION}-dev.${GITHUB_SHA::12}"
+          fi
+          echo "version=$image_version" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build gateway image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/oci/gateway.Dockerfile
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: uc-gateway:test-${{ matrix.arch }}
+          build-args: |
+            VERSION=${{ steps.release.outputs.version }}
+            REVISION=${{ github.sha }}
+      - name: Inspect immutable gateway contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="uc-gateway:test-${{ matrix.arch }}"
+          test "$(docker image inspect --format '{{.Config.User}}' "$image")" = '10001:10001'
+          test "$(docker image inspect --format '{{.Config.Entrypoint}}' "$image")" = '[/usr/local/bin/uc-gateway]'
+          test "$(docker image inspect --format '{{.Config.Cmd}}' "$image")" = '[]'
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "$image")" = '${{ steps.release.outputs.version }}'
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = '${{ github.sha }}'
+          test "$(docker image inspect --format '{{index .Config.ExposedPorts "8080/tcp"}}' "$image")" = 'map[]'
+      - name: Verify embedded documentation and non-root execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="uc-gateway:test-${{ matrix.arch }}"
+          container=$(docker run --detach --read-only --tmpfs /tmp:rw,noexec,nosuid,size=16m -p 127.0.0.1::8080 "$image")
+          cleanup() {
+            docker rm --force "$container" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          port=$(docker port "$container" 8080/tcp | awk -F: '{print $NF}')
+          for _ in $(seq 1 30); do
+            if curl --silent --fail "http://127.0.0.1:${port}/healthz" >/dev/null; then
+              break
+            fi
+            test "$(docker inspect --format '{{.State.Running}}' "$container")" = 'true'
+            sleep 1
+          done
+          test "$(docker exec "$container" id -u)" = '10001'
+          curl --silent --fail "http://127.0.0.1:${port}/healthz" | grep -qx 'ok'
+          curl --silent --fail "http://127.0.0.1:${port}/openapi.json" | grep -q '"/v1/runtime:ping"'
+          curl --silent --fail "http://127.0.0.1:${port}/swagger/" | grep -q 'url: "/openapi.json"'
+          readiness_status=$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:${port}/readyz")
+          test "$readiness_status" = '503'
+          docker stop --time 10 "$container" >/dev/null
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = '0'
+      - name: Export gateway inspection evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p oci-evidence
+          docker image inspect "uc-gateway:test-${{ matrix.arch }}" > "oci-evidence/gateway-${{ matrix.arch }}.json" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gateway-image-${{ matrix.arch }}
           path: oci-evidence
           if-no-files-found: warn
           retention-days: 7

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uc-runtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: uc-runtime
+  template:
+    metadata:
+      labels:
+        app: uc-runtime
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: runtime
+          image: ghcr.io/nomed/uc-runtime:${UC_RELEASE_VERSION}
+          args: ["--grpc-addr", "127.0.0.1:50051", "serve-grpc"]
+          ports:
+            - name: grpc-internal
+              containerPort: 50051
+          readinessProbe:
+            tcpSocket:
+              port: grpc-internal
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: grpc-internal
+            periodSeconds: 10
+        - name: gateway
+          image: ghcr.io/nomed/uc-gateway:${UC_RELEASE_VERSION}
+          env:
+            - name: UC_GATEWAY_ADDR
+              value: 0.0.0.0:8080
+            - name: UC_GRPC_ENDPOINT
+              value: 127.0.0.1:50051
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uc-runtime
+spec:
+  selector:
+    app: uc-runtime
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

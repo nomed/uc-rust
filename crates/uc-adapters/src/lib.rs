@@ -131,12 +131,38 @@ fn insert_response_metadata<T>(response: &mut Response<T>, key: &'static str, va
 /// Serves the versioned gRPC runtime API until the server terminates.
 ///
 /// The listener exposes delivery mapping only; canonical semantics are delegated to
-/// `uc-runtime` Operations.
+/// `uc-runtime` Operations. SIGINT and SIGTERM trigger bounded transport shutdown so
+/// container orchestrators receive a successful process exit instead of a forced kill.
 pub async fn serve_grpc(addr: SocketAddr) -> Result<(), tonic::transport::Error> {
+    info!(address = %addr, "gRPC runtime listening");
     tonic::transport::Server::builder()
         .add_service(RuntimeServiceServer::new(GrpcRuntimeService::default()))
-        .serve(addr)
+        .serve_with_shutdown(addr, shutdown_signal())
         .await
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+
+        let mut terminate = signal(SignalKind::terminate()).expect("install SIGTERM handler");
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => {
+                if let Err(error) = result {
+                    tracing::error!(%error, "failed to listen for SIGINT");
+                }
+            }
+            _ = terminate.recv() => {}
+        }
+    }
+
+    #[cfg(not(unix))]
+    if let Err(error) = tokio::signal::ctrl_c().await {
+        tracing::error!(%error, "failed to listen for shutdown signal");
+    }
+
+    info!("gRPC runtime shutdown requested");
 }
 
 fn map_error(error: OperationError, correlation_id: &str) -> Status {

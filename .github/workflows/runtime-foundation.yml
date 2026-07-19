@@ -11,6 +11,7 @@ on:
       - "crates/uc-config/**"
       - "crates/uc-adapters/**"
       - "proto/**"
+      - "scripts/check_rust_documentation.py"
       - "buf.yaml"
       - ".github/workflows/runtime-foundation.yml"
   push:
@@ -24,7 +25,9 @@ on:
       - "crates/uc-config/**"
       - "crates/uc-adapters/**"
       - "proto/**"
+      - "scripts/check_rust_documentation.py"
       - "buf.yaml"
+      - ".github/workflows/runtime-foundation.yml"
 
 permissions:
   contents: read
@@ -45,8 +48,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.85.0
-          components: rustfmt,clippy
+          components: rustfmt,clippy,llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
       - name: Normalize formatting
         shell: bash
         run: |
@@ -57,11 +63,29 @@ jobs:
         run: |
           set -o pipefail
           cargo check $RUNTIME_PACKAGES --all-targets 2>&1 | tee runtime-check.log
-      - name: Test Runtime Foundation slice
+      - name: Clippy with warnings denied
         shell: bash
         run: |
           set -o pipefail
-          cargo test $RUNTIME_PACKAGES 2>&1 | tee runtime-test.log
+          cargo clippy $RUNTIME_PACKAGES --all-targets -- -D warnings 2>&1 | tee runtime-clippy.log
+      - name: Verify rigorous code documentation
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/check_rust_documentation.py 2>&1 | tee runtime-documentation.log
+          RUSTDOCFLAGS='-D warnings' cargo doc $RUNTIME_PACKAGES --no-deps 2>&1 | tee runtime-rustdoc.log
+      - name: Test with absolute coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo llvm-cov $RUNTIME_PACKAGES \
+            --all-targets \
+            --lcov \
+            --output-path runtime-coverage.lcov \
+            --fail-under-lines 100 \
+            --fail-under-functions 100 \
+            --fail-under-regions 100 \
+            2>&1 | tee runtime-test.log
       - name: Architecture boundary check
         shell: bash
         run: |
@@ -83,7 +107,11 @@ jobs:
           path: |
             rustfmt.patch
             runtime-check.log
+            runtime-clippy.log
+            runtime-documentation.log
+            runtime-rustdoc.log
             runtime-test.log
+            runtime-coverage.lcov
           if-no-files-found: warn
           retention-days: 7
 

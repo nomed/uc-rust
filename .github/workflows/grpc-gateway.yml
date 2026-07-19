@@ -89,7 +89,7 @@ jobs:
           set -euo pipefail
           cargo build -p uc-cli 2>&1 | tee gateway-rust-build.log
 
-          target/debug/uc --grpc-addr 127.0.0.1:50051 serve-grpc > gateway-rust-service.log 2>&1 &
+          target/debug/uc-cli --grpc-addr 127.0.0.1:50051 serve-grpc > gateway-rust-service.log 2>&1 &
           rust_pid=$!
           UC_GATEWAY_ADDR=127.0.0.1:8080 \
           UC_GRPC_ENDPOINT=127.0.0.1:50051 \

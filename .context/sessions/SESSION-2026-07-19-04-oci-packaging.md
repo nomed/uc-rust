@@ -4,7 +4,7 @@
 - Governing issue: #82
 - Started: 2026-07-19T16:44:34Z
 - Ended: in progress
-- Branch or commit: issue-82-oci-packaging / 47c7fa9c66dd1344cf947a930b1f371fc635dd44
+- Branch or commit: issue-82-oci-packaging / 0fb2b6ccafad4d88dd67580b9c66648d94f5afcb
 
 ## Intent
 
@@ -37,22 +37,26 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Added `.github/workflows/lockfile-refresh.yml` to regenerate, validate, archive, and commit the canonical lockfile.
 - Replaced the plain Tonic `serve` lifecycle with `serve_with_shutdown`, handling SIGINT and SIGTERM so container shutdown exits cleanly.
 - Added a packaged two-container conformance job that builds the real runtime and gateway images, connects them through an isolated Docker network, and exercises the external REST surface through the generated gateway.
+- Replaced unresolved `${UC_RELEASE_VERSION}` placeholders in the Kubernetes example with concrete shared `0.1.0` image tags and release-please markers.
+- Added Pod/container security contexts for non-root UID/GID `10001`, read-only root filesystems, no privilege escalation, and dropped Linux capabilities.
+- Registered `deploy/kubernetes/runtime-gateway.yaml` as a release-please generic extra file so both image tags and version labels advance atomically with the release.
 
 ## Outcomes
 
 - Runtime image build, immutable contract inspection, non-root execution, read-only filesystem compatibility, and graceful shutdown are green on both `linux/amd64` and `linux/arm64`.
-- Gateway image is green on `linux/amd64`; the isolated `linux/arm64` build job is being retried after a runner/QEMU-side failure.
-- Container conformance now verifies REST → generated Go gateway → Rust/Tonic using the packaged artifacts rather than host-built processes.
+- Gateway image is green on `linux/amd64`; the isolated `linux/arm64` build job is still running under QEMU retry.
+- Container conformance verifies REST → generated Go gateway → Rust/Tonic using the packaged artifacts rather than host-built processes.
 - The conformance evidence includes health/readiness, success response normalization, correlation and trace metadata propagation, canonical invalid-request mapping, backend-loss readiness `503`, and process logs.
+- The Kubernetes example now consumes a valid, directly applicable shared release tag instead of relying on unsupported shell interpolation in raw YAML.
+- Runtime and gateway image tags, Deployment/Pod labels, and Service labels are governed by the same release-please version update.
 - CI outside the OCI workflow remains green.
-- The release version is governed from one release-please-managed file and validated against the Rust workspace version and release tag.
 - Session maintenance is enforced by the pull-request gate.
 
 ## Evidence
 
 - Issue #82.
 - Draft PR #83.
-- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `47c7fa9c66dd1344cf947a930b1f371fc635dd44`.
+- Commits `43604c77b11a40f734be06f5d629b6a33fac8b14` through `0fb2b6ccafad4d88dd67580b9c66648d94f5afcb`.
 - OCI Images runs #1 through #21.
 - CI runs #424 through #444.
 - Context accountability #10: success.
@@ -60,7 +64,8 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 - Runtime Foundation #88: success.
 - gRPC Gateway #31: success.
 - Runtime `amd64` and `arm64` jobs in OCI Images #21: success.
-- New OCI evidence artifact contract: `oci-container-conformance`.
+- OCI evidence artifact contract: `oci-container-conformance`.
+- Kubernetes release contract: `deploy/kubernetes/runtime-gateway.yaml` plus release-please generic extra-file registration.
 
 ## Candidate decisions
 
@@ -68,18 +73,19 @@ Turn the single-Pod/two-process delivery contract from #80 into reproducible OCI
 
 ## Failures and discarded approaches
 
-- Hardcoded `0.1.0-test` build metadata was discarded because release identity must come from release-please and tags.
+- Hardcoded test-only build metadata was discarded because release identity must come from release-please and tags.
 - A default Dockerfile version was discarded because it allowed silently mis-versioned images.
 - Removing `--locked` was rejected because it would make image dependency resolution non-reproducible and conceal repository drift.
 - Manually editing or copying a partial `Cargo.lock` was rejected; the governed toolchain generates and commits the complete canonical file.
 - Treating SIGTERM as an external forced-kill concern was rejected; the runtime transport owns graceful process termination.
-- Host-process-only REST conformance was insufficient for packaging acceptance; the final gate now runs the actual OCI images over a container network.
+- Host-process-only REST conformance was insufficient for packaging acceptance; the final gate runs the actual OCI images over a container network.
+- Raw Kubernetes `${UC_RELEASE_VERSION}` interpolation was rejected because Kubernetes does not expand shell variables in image fields.
 
 ## Open questions
 
 - Confirm the retried `gateway (arm64)` job is green or capture a deterministic failure if it recurs.
-- Update the Kubernetes example to consume the concrete shared image tag and validate the manifest against the image contract.
+- Validate the new container conformance and Kubernetes release contract gates on the latest branch head.
 
 ## Next handoff
 
-Continue on issue #82 and PR #83: validate the new packaged container conformance gate, resolve the remaining gateway arm64 result, then wire the concrete shared image contract into `deploy/kubernetes/runtime-gateway.yaml`.
+Continue on issue #82 and PR #83: verify all latest gates, diagnose any deterministic gateway arm64 or packaged conformance failure, then finalize the PR for review and merge.

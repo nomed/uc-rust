@@ -16,8 +16,8 @@ pub mod proto {
 
 use proto::runtime_service_server::{RuntimeService, RuntimeServiceServer};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{Request, Response, Status, metadata::MetadataValue};
-use tracing::{Instrument, info, info_span};
+use tonic::{metadata::MetadataValue, Request, Response, Status};
+use tracing::{info, info_span, Instrument};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,
@@ -160,6 +160,7 @@ fn map_error(error: OperationError, correlation_id: &str) -> Status {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tracing_test::traced_test;
 
     #[test]
     fn canonical_errors_map_deterministically() {
@@ -174,6 +175,39 @@ mod tests {
         assert_eq!(
             map_error(OperationError::Forbidden, "corr").code(),
             tonic::Code::PermissionDenied
+        );
+    }
+
+    #[tokio::test]
+    #[traced_test]
+    async fn ping_emits_required_span_vocabulary_and_safe_correlation() {
+        const CORRELATION_ID: &str = "trace-hierarchy-correlation";
+
+        let response = GrpcRuntimeService::default()
+            .ping(Request::new(proto::PingRequest {
+                message: " hello ".into(),
+                tenant_id: "tenant-a".into(),
+                identity: "trace-test".into(),
+                correlation_id: CORRELATION_ID.into(),
+                idempotency_key: String::new(),
+            }))
+            .await
+            .expect("valid Ping invocation must succeed");
+
+        assert_eq!(response.get_ref().message, "hello");
+        assert!(logs_contain("decode"), "delivery decoding span is required");
+        assert!(
+            logs_contain("invocation"),
+            "one invocation span must contain the request lifecycle"
+        );
+        assert!(
+            logs_contain("operation"),
+            "canonical Operation execution span is required"
+        );
+        assert!(logs_contain("encode"), "delivery encoding span is required");
+        assert!(
+            logs_contain(CORRELATION_ID),
+            "safe correlation identifier must be attached to diagnostic spans"
         );
     }
 }

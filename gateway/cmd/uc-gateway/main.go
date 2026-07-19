@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	runtimev1 "github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtimev1 "github.com/nomed/uc-rust/gateway/gen/go/uc/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

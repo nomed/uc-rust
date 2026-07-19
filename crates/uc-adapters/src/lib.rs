@@ -16,8 +16,8 @@ pub mod proto {
 
 use proto::runtime_service_server::{RuntimeService, RuntimeServiceServer};
 use std::{net::SocketAddr, time::Duration};
-use tonic::{metadata::MetadataValue, Request, Response, Status};
-use tracing::{info_span, Instrument};
+use tonic::{Request, Response, Status, metadata::MetadataValue};
+use tracing::{Instrument, info, info_span};
 use uc_operation::{
     CancellationToken, ExecutionContext, Operation, OperationError,
     PingRequest as CanonicalPingRequest, TraceContext,
@@ -44,9 +44,11 @@ impl RuntimeService for GrpcRuntimeService {
         let invocation = info_span!("invocation", correlation_id = %correlation_id);
 
         async {
+            info!(correlation_id = %correlation_id, "invocation");
             let (request, response_traceparent, context) = {
                 let decode = info_span!("decode");
                 let _decode_guard = decode.enter();
+                info!("decode");
                 let traceparent = metadata_string(request.metadata(), TRACEPARENT_HEADER);
                 let response_traceparent = traceparent.clone();
                 let tracestate = metadata_string(request.metadata(), "tracestate");
@@ -83,16 +85,19 @@ impl RuntimeService for GrpcRuntimeService {
                 )
             };
 
-            let response = self
-                .operation
-                .execute(request, context)
-                .instrument(info_span!("operation"))
-                .await
-                .map_err(|error| map_error(error, &correlation_id))?;
+            let operation = info_span!("operation");
+            let response = async {
+                info!("operation");
+                self.operation.execute(request, context).await
+            }
+            .instrument(operation)
+            .await
+            .map_err(|error| map_error(error, &correlation_id))?;
 
             let mut response = {
                 let encode = info_span!("encode");
                 let _encode_guard = encode.enter();
+                info!("encode");
                 Response::new(proto::PingResponse {
                     message: response.message,
                     tenant_id: response.tenant_id,

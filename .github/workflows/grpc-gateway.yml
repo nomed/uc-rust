@@ -1,0 +1,57 @@
+name: gRPC Gateway
+
+on:
+  pull_request:
+    paths:
+      - "proto/**"
+      - "gateway/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - ".github/workflows/grpc-gateway.yml"
+  push:
+    branches: [main]
+    paths:
+      - "proto/**"
+      - "gateway/**"
+      - "buf.yaml"
+      - "buf.gen.yaml"
+      - ".github/workflows/grpc-gateway.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  generate-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.57.2"
+      - name: Resolve locked dependencies
+        run: buf dep update
+      - name: Lint protobuf contract
+        run: buf lint
+      - name: Generate gateway and OpenAPI
+        run: buf generate
+      - name: Verify generated contract surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f gateway/gen/go/uc/runtime/v1/runtime.pb.go
+          test -f gateway/gen/go/uc/runtime/v1/runtime_grpc.pb.go
+          test -f gateway/gen/go/uc/runtime/v1/runtime.pb.gw.go
+          test -f gateway/gen/openapi/uc-runtime.swagger.json
+          grep -q '"/v1/runtime:ping"' gateway/gen/openapi/uc-runtime.swagger.json
+          grep -q '"/v1/runtime/ping"' gateway/gen/openapi/uc-runtime.swagger.json
+      - name: Upload generation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grpc-gateway-generation
+          path: |
+            buf.lock
+            gateway/gen/go
+            gateway/gen/openapi
+          if-no-files-found: warn
+          retention-days: 7
